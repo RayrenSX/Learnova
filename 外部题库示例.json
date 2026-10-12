@@ -1,0 +1,20 @@
+[
+  {
+    "name": "示例题库（请替换地址）",
+    "enabled": false,
+    "url": "https://example.com/api/search",
+    "method": "POST",
+    "headers": { "Authorization": "Bearer 请填写题库密钥" },
+    "data": { "question": "{{question}}", "type": "{{type}}", "options": "{{options}}", "groups": "{{groups}}" },
+    "answerPath": "data.answers"
+  },
+  {
+    "name": "GET 题库示例（请替换地址）",
+    "enabled": false,
+    "url": "https://example.com/search",
+    "method": "GET",
+    "data": { "title": "{{question}}" },
+    "answerPath": "answer",
+    "separator": ";"
+  }
+]

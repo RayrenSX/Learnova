@@ -1,0 +1,29 @@
+[
+  {
+    "question": "1 + 1 = ?",
+    "type": "single",
+    "options": ["1", "2", "3"],
+    "answers": ["B"]
+  },
+  {
+    "question": "哪些是偶数？",
+    "type": "multiple",
+    "options": ["2", "3", "4"],
+    "answers": ["A", "C"]
+  },
+  {
+    "question": "水在标准大气压下的沸点是100摄氏度。",
+    "type": "judgment",
+    "answers": [true]
+  },
+  {
+    "question": "两个空",
+    "type": "blank",
+    "answers": ["第一个空的答案", "第二个空的答案"]
+  },
+  {
+    "question": "描述水",
+    "type": "essay",
+    "answers": ["水是一种由氢元素和氧元素组成的化合物。"]
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "name": "xuexitong",
+  "version": "3.6.8",
+  "private": true,
+  "description": "学习通课程播放与自动答题用户脚本，带可配置窗口和日志",
+  "main": "学习助手完整版.user.js",
+  "scripts": {
+    "build": "node tools/build-full.cjs",
+    "check": "node --check 学习通学习助手.user.js && node --check 学习助手完整版.user.js",
+    "test": "node tests/font-codec.cjs && node tests/run.cjs",
+    "test:playback": "node tests/real-playback.cjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "playwright": "^1.64.0"
+  },
+  "dependencies": {
+    "blueimp-md5": "^2.19.0",
+    "typr-ts": "^1.1.5"
+  }
+}
