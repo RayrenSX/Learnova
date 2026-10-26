@@ -34,6 +34,7 @@ const harness = esbuild.buildSync({stdin: {resolveDir: root, contents: `
   let passed = 0;
   const report = [];
   const test = async (name, callback) => {
+    if(process.env.PINTIA_TEST_FILTER&&!new RegExp(process.env.PINTIA_TEST_FILTER).test(name))return;
     if (process.env.PINTIA_TEST_TRACE) {
       fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
       fs.writeFileSync(path.join(root,'test-results/progress.json'),JSON.stringify({name,at:new Date().toISOString(),completed:report.length}));
@@ -338,7 +339,8 @@ const harness = esbuild.buildSync({stdin: {resolveDir: root, contents: `
     await test('Native rerender does not overwrite unsynchronized user code; explicit sync restores consistency',async()=>{
       const page=await setup({dock:true});await workContent(page).click();await page.keyboard.press('Control+End');await page.keyboard.insertText('\n// local edit');
       await page.evaluate(original=>answerView.dispatch({changes:{from:0,to:answerView.state.doc.length,insert:original}}),original);
-      await page.waitForTimeout(800);assert.equal(await button(page,'sync-now').isVisible(),true);assert.match(await localCode(page),/local edit/);assert.equal(await button(page,'diagnose').isDisabled(),true);
+      await page.waitForTimeout(800);
+      assert.equal(await button(page,'sync-now').isVisible(),true,JSON.stringify({local:await localCode(page),native:await page.evaluate(()=>answerView.state.doc.toString()),sync:await button(page,'editor-sync').textContent(),status:await status(page)}));assert.match(await localCode(page),/local edit/);assert.equal(await button(page,'diagnose').isDisabled(),true);
       await button(page,'sync-now').click();await page.waitForTimeout(500);assert.match(await page.evaluate(()=>answerView.state.doc.toString()),/local edit/);
     });
     await test('Workspace custom test input syncs only to test input while answer remains unchanged',async()=>{
@@ -612,6 +614,22 @@ const harness = esbuild.buildSync({stdin: {resolveDir: root, contents: `
       await button(page, 'collapse').click(); assert.equal(await button(page, 'expand').isVisible(), true);
       await button(page, 'expand').click(); assert.equal(await button(page, 'diagnose').isVisible(), true);
       const desktop = await setup(); await analyze(desktop); await desktop.screenshot({path: path.join(dir, 'desktop.png')});
+    });
+    await test('Study exports: current statement and own full code download as Markdown without test or submit',async()=>{
+      const page=await setup();await button(page,'tab-settings').click();const event=page.waitForEvent('download');await button(page,'export-current').click();const content=fs.readFileSync(await (await event).path(),'utf8');
+      assert.ok(content.includes('## 我的代码'));assert.ok(content.includes(original));
+      await button(page,'export-my-code').uncheck();const next=page.waitForEvent('download');await button(page,'export-current').click();const statement=fs.readFileSync(await (await next).path(),'utf8');assert.ok(!statement.includes('## 我的代码'));
+    });
+    await test('Study exports: existing problem set uses GET endpoints and downloads all returned types',async()=>{
+      const page=await setup();const requests=[];
+      await page.route('**/api/**',route=>{const url=new global.URL(route.request().url());requests.push({url:url.pathname,method:route.request().method()});const data=url.pathname.endsWith('/exams')?{exam:{id:'42'}}:url.pathname.endsWith('/problem-summaries')?{summaries:{7:1,6:1}}:{problemSetProblems:[{id:url.searchParams.get('problem_type'),title:'导出样例',content:'题目材料 $x^2$'}]};return route.fulfill({contentType:'application/json',body:JSON.stringify(data)});});
+      await button(page,'tab-settings').click();const event=page.waitForEvent('download');await button(page,'export-set').click();const content=fs.readFileSync(await (await event).path(),'utf8');assert.ok(content.includes('题目材料 $x^2$'));assert.equal(requests.length,4);assert.ok(requests.every(r=>r.method==='GET'));
+    });
+    await test('Study exports: missing exam stops without creating an exam; canceled export never downloads',async()=>{
+      const page=await setup();const requests=[];let delay=false;
+      await page.route('**/api/**',async route=>{requests.push(route.request().method());if(delay)await new Promise(resolve=>setTimeout(resolve,500));await route.fulfill({contentType:'application/json',body:JSON.stringify({exam:null})}).catch(()=>{});});
+      await button(page,'tab-settings').click();let downloads=0;page.on('download',()=>downloads++);await button(page,'export-set').click();await button(page,'export-status').filter({hasText:'已存在'}).waitFor();assert.equal(downloads,0);assert.deepEqual(requests,['GET']);
+      delay=true;await button(page,'export-set').click();await button(page,'export-cancel').click();await page.waitForTimeout(700);assert.equal(downloads,0);
     });
     assert.equal(externalRequests.filter(item => item.method !== 'GET').length, 0);
     console.log(`${passed}/${passed} Pintia checks passed; no real platform / AI requests or submissions`);

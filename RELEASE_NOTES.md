@@ -1,3 +1,14 @@
+Learnova 0.1.4
+
+- Personal space shows Course Queue, Home and Settings, without playback controls, chapter catalog, chat or records. Course pages keep the catalog and place the queue and homework tools under Home.
+- Read courses only from personal space; prefer loaded course cards, deduplicate cover/title links, preserve existing choices and completion records, and leave newly discovered courses unselected.
+- Rework queue progress, search, status filters, compact rows, selection and reorder controls. Resume the current course, preserve multi-tab ownership, and recover from failed course navigation. Completion requires consistent platform task markers.
+- Answer-related toggles default off; playback defaults stay on. Existing saved choices are preserved.
+- Consolidate built-in services, OCS configurations, local banks and cache into Question Bank Management. OCS is the default online provider; standard handlers, field transforms, question type mapping and deduplication are supported.
+- Include course study/export tools and the separate platform workbenches already implemented in the local working version. Rebuild all distribution assets at the same version.
+
+Validation includes isolated regression tests and checks on signed-in personal-space, course and playback pages. No homework or exam was submitted during live checks.
+
 Learnova 0.1.3
 
 - Fix stale image answers: changing an image URL, srcset, or picture source invalidates the question even when its alt text stays the same.

@@ -25,10 +25,11 @@ jobs:
       - run: npm run check && npm run check --prefix pintia
       - run: npx playwright install --with-deps chromium
       - run: npm run test:update
-      - name: Verify ScriptCat audit regressions
+      - run: npm run test:study
+      - name: Verify userscript audit and page layout regressions
         run: node tests/run.cjs
         env:
-          CX_TEST_FILTER: ScriptCat
+          CX_TEST_FILTER: ScriptCat|页面分区|队列审查|课程队列|队列读取|课后作业：列表|题库管理
       - uses: actions/upload-artifact@v4
         with:
           name: Learnova

@@ -1,0 +1,16 @@
+[
+  {
+    "name": "N1搜题助手",
+    "url": "https://tk.n1t.cn/api/search.php",
+    "method": "POST",
+    "profile": "n1",
+    "headers": { "Content-Type": "application/x-www-form-urlencoded" },
+    "data": {
+      "question": "{{question}}",
+      "key": "请填写题库密钥",
+      "type": "{{typeName}}",
+      "options": "{{optionsJSON}}"
+    },
+    "answerPath": "data"
+  }
+]

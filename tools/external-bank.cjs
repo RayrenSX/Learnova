@@ -1,4 +1,13 @@
 const N1_URL = 'https://tk.n1t.cn/api/search.php';
+// Public request/response protocol observed in ABC v4.8.3; no vendor implementation bundled.
+const ABC_NODES = { secure: 'https://cs.dkjdda.top/question/accurateSearch', primary: 'http://154.44.26.234/question/accurateSearch' };
+function abcConfig(key, node = 'secure') {
+  if (typeof key !== 'string' || !key.trim()) throw new Error('请填写 ABC 题库密钥');
+  if (!Object.hasOwn(ABC_NODES, node)) throw new Error('未知 ABC 节点');
+  return {name:'ABC题库',profile:'abc',node,url:ABC_NODES[node],method:'POST',
+    data:{author:'Ray',version:'0.1.3',referer:'me',question:'{{question}}',options:'{{optionsJSON}}',type:'{{abcType}}',
+      questionData:'',workType:'zj',id:'0',token:key.trim()},answerPath:'data.answer',successPath:'code',successValue:1};
+}
 const TYPE_NAMES = { single: '单选题', multiple: '多选题', judgment: '判断题', blank: '填空题', essay: '简答题', line: '连线题', cloze: '完形填空', reading: '阅读理解' };
 function isN1(raw) {
   try { const url = new URL(raw); return url.hostname === 'tk.n1t.cn' && url.pathname === '/api/search.php' && !url.username && !url.password && !url.search && !url.hash; }
@@ -11,9 +20,14 @@ function n1Config(key) {
 }
 function normalizeConfig(item) {
   if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('题库配置需为对象');
+  if (item.profile === 'abc') {
+    const result = abcConfig(item.data?.token,item.node);
+    if (item.url !== result.url || (item.method || 'POST').toUpperCase() !== 'POST') throw new Error('ABC 密钥只能发送到选定的原服务节点');
+    return {...result,...(item.enabled !== undefined ? {enabled:item.enabled} : {})};
+  }
   if (item.profile && item.profile !== 'n1') throw new Error('不支持的题库适配类型');
   if (item.type && !['GM_xmlhttpRequest','fetch'].includes(item.type)) throw new Error('不支持的 OCS 请求类型');
-  const method = String(item.method || (item.handler !== undefined ? 'GET' : 'POST')).toUpperCase();
+  const method = String(item.method || (item.handler !== undefined || item.ocs ? 'GET' : 'POST')).toUpperCase();
   if (!['GET', 'POST'].includes(method)) throw new Error('题库请求方法必须是 GET 或 POST');
   const n1 = isN1(item.url);
   if (item.profile === 'n1' && !n1) throw new Error('N1 题库密钥只能发送到 tk.n1t.cn 的搜索接口');
@@ -27,12 +41,33 @@ function normalizeConfig(item) {
   if (!['json','text',undefined].includes(item.responseType || item.contentType)) throw new Error('OCS 响应类型只支持 json 或 text');
   if (Object.values(item.data || {}).some(value => value && typeof value === 'object' && value.handler) && item.allowCode !== true) throw new Error('data.handler 需设置 allowCode:true');
   if (n1) {
+    if (item.handler !== undefined) throw new Error('N1 预设仅接受标准响应解析');
     const result = n1Config(item.data?.key);
     if (method !== 'POST') throw new Error('N1 搜索仅支持 POST');
     return { ...result, name: typeof item.name === 'string' && item.name.trim() ? item.name : result.name,
       ...(item.enabled !== undefined ? { enabled: item.enabled } : {}) };
   }
   return { ...item, method };
+}
+function normalizeConfigs(items, {importOCS = false} = {}) {
+  if (!Array.isArray(items)) throw new Error('题库配置需为数组');
+  const seen = new Set();
+  const result = items.map(item => {
+    if (importOCS && item && typeof item.handler === 'string') {
+      item = {...item, ocs:true, type:item.type || 'fetch', allowCode:item.allowCode ?? true};
+    }
+    return normalizeConfig(item);
+  }).filter(item => {
+    // Ignore display metadata and key order, but preserve distinct credentials / parsers.
+    const stable = value => Array.isArray(value) ? value.map(stable) : value && typeof value === 'object'
+      ? Object.fromEntries(Object.keys(value).sort().map(key => [key,stable(value[key])])) : value;
+    const {name, homepage, enabled, ...request} = item;
+    const identity = JSON.stringify(stable(request));
+    if (seen.has(identity)) return false;
+    seen.add(identity); return true;
+  });
+  if (result.length > 10) throw new Error('最多配置 10 个不同题库');
+  return result;
 }
 function parseDeclarativeHandler(handler) {
   if (typeof handler !== 'string' || handler.length > 2000) return null;
@@ -46,16 +81,16 @@ function parseDeclarativeHandler(handler) {
   if (m[1]) {result.successPath=m[1]; result.successValue=JSON.parse(m[2].startsWith("'") ? JSON.stringify(m[2].slice(1,-1)) : m[2]);}
   return result;
 }
-function fieldsOf(q) {
+function fieldsOf(q, ocs = false) {
   const texts = (q.options || []).map(option => option.text);
   const options = ['blank', 'essay'].includes(q.type) ? [String(q.blanks || 1)] : texts;
-  return { question: q.title, title: q.title, type: q.type, typeName: TYPE_NAMES[q.type] || q.type,
-    options: texts.join('\n'), optionsJSON: JSON.stringify(options), groups: JSON.stringify(q.groups || []), blanks: String(q.blanks || 0),
+  return { question: q.title, title: q.title, type: ocs ? ({judgment:'judgement',blank:'completion',essay:'completion'}[q.type] || q.type) : q.type, typeName: TYPE_NAMES[q.type] || q.type,
+    options: texts.join('\n'), optionsJSON: JSON.stringify(options), abcType:({single:'0',multiple:'1',blank:'2',judgment:'3',essay:'2',line:'11',cloze:'14',reading:'15'})[q.type] || q.type, groups: JSON.stringify(q.groups || []), blanks: String(q.blanks || 0),
     images: q.images || [], suggestion_title:q.title, suggestion_options:texts.join('\n') };
 }
 function makeRequest(config, q) {
-  const fields = fieldsOf(q);
-  const placeholders = /\{\{(question|title|type|typeName|options|optionsJSON|groups|blanks|images|suggestion_title|suggestion_options)\}\}|\$\{(question|title|type|typeName|options|optionsJSON|groups|blanks|images|suggestion_title|suggestion_options)\}/g;
+  const fields = fieldsOf(q, config.ocs);
+  const placeholders = /\{\{(question|title|type|typeName|abcType|options|optionsJSON|groups|blanks|images|suggestion_title|suggestion_options)\}\}|\$\{(question|title|type|typeName|abcType|options|optionsJSON|groups|blanks|images|suggestion_title|suggestion_options)\}/g;
   function replace(value, depth = 0) {
     if (depth > 12) throw new Error('题库模板嵌套过深');
     if (Array.isArray(value)) return value.map(item => replace(item,depth+1));
@@ -67,6 +102,10 @@ function makeRequest(config, q) {
   }
   const data = config.data ? Object.fromEntries(Object.entries(config.data).map(([key,value]) =>
     [key,config.transformedKeys instanceof Set && config.transformedKeys.has(key) ? value : replace(value)])) : fields;
+  if (config.profile === 'abc') {
+    data.options = ['single','multiple','line','cloze','reading'].includes(q.type) ? (q.options || []).map(o=>o.text) : [];
+    data.workType=q.workType || 'zj';data.id=q.courseId || '0';
+  }
   const headers = { ...config.headers };
   const typeEntry = Object.entries(headers).find(([key]) => key.toLowerCase() === 'content-type');
   const type = typeEntry?.[1] || 'application/json';
@@ -79,6 +118,7 @@ function makeRequest(config, q) {
 }
 function parseResponse(config, json, q) {
   const n1 = config.profile === 'n1' || isN1(config.url);
+  const abc = config.profile === 'abc';
   if (n1 && json?.code !== 1) throw new Error('N1 题库未返回成功状态（可能未命中、密钥无效或配额不足），不采用响应中的答案');
   if (config.successPath) {
     const state = config.successPath.split('.').reduce((node, key) => node?.[key], json);
@@ -88,8 +128,12 @@ function parseResponse(config, json, q) {
   let answers = value;
   if (typeof value === 'string') {
     const exact = (q.options || []).some(option => String(option.text).trim() === value.trim());
-    answers = n1 && (exact || ['single', 'judgment', 'essay'].includes(q.type)) ? [value]
-      : value.split(config.separator || (n1 ? /[#;；|]/ : /[;；|]/));
+    answers = (n1 || abc || config.ocs) && (exact || ['single', 'judgment', 'essay'].includes(q.type)) ? [value]
+      : value.split(config.separator || (config.ocs ? /###|===|---|[#;；|]/ : n1 ? /[#;；|]/ : /[;；|]/));
+  }
+  if(abc && Array.isArray(answers) && ['multiple','blank','line','cloze','reading'].includes(q.type) && answers.length===1 && typeof answers[0]==='string') {
+    const exact=(q.options||[]).some(option=>String(option.text).trim()===answers[0].trim());
+    if(!exact)answers=answers[0].split(/###|===|---|[#;；|]/).map(part=>part.trim()).filter(Boolean);
   }
   if (!Array.isArray(answers) || !answers.length || answers.some(a => !['string', 'number', 'boolean'].includes(typeof a) || !String(a).trim())) throw new Error('题库答案缺少有效内容');
   const confidence = json.confidence === undefined ? 1 : Number(json.confidence);
@@ -102,4 +146,4 @@ function parseResponse(config, json, q) {
   }
   return result;
 }
-module.exports = { N1_URL, TYPE_NAMES, isN1, n1Config, normalizeConfig, parseDeclarativeHandler, fieldsOf, makeRequest, parseResponse };
+module.exports = { ABC_NODES, abcConfig, N1_URL, TYPE_NAMES, isN1, n1Config, normalizeConfig, normalizeConfigs, parseDeclarativeHandler, fieldsOf, makeRequest, parseResponse };

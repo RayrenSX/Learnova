@@ -1,13 +1,14 @@
 {
   "name": "learnova",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "description": "学习通播放、阅读与答题和 Pintia 代码工作台合并用户脚本，按网站自动加载",
   "main": "学习助手完整版.user.js",
   "scripts": {
     "build": "node tools/build-full.cjs",
     "check": "node --check 学习通学习助手.user.js && node --check 学习助手完整版.user.js",
-    "test": "node tests/font-codec.cjs && node tests/web-search.cjs && node tests/external-bank.cjs && node tests/platform-tasks.cjs && node tests/run.cjs",
+    "test": "node tests/font-codec.cjs && node tests/web-search.cjs && node tests/external-bank.cjs && node tests/platform-tasks.cjs && node tests/study-tools.cjs && node tests/run.cjs",
+    "test:study": "node tests/study-tools.cjs",
     "test:playback": "node tests/real-playback.cjs",
     "test:update": "node tests/update.cjs",
     "build:greasyfork": "node tools/build-greasyfork.cjs",

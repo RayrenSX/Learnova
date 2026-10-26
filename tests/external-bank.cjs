@@ -38,4 +38,13 @@ for (const template of ['{{unknown}}', '{{title}} ${unknown}', '${title', '{{tit
   assert.throws(() => bank.makeRequest({ data: { question: template } }, q), /不支持的占位符/);
 }
 assert.deepEqual(bank.parseResponse({ name: '普通', answerPath: 'data.answers' }, { data: { answers: ['A', 'C'] } }, { ...q, type: 'multiple' }).answers, ['A', 'C']);
+const imported = bank.normalizeConfigs([{name:'OCS',url:'https://example.com/query',data:{title:'${title}',type:'${type}'},handler:'return res => res.rows.map(r => [r.title,r.answer])'}],{importOCS:true})[0];
+assert.equal(imported.method,'GET');assert.equal(imported.type,'fetch');assert.equal(imported.allowCode,true);
+for(const [type,expected] of [['judgment','judgement'],['blank','completion'],['single','single']])assert.equal(bank.makeRequest(imported,{...q,type}).data.type,expected);
+assert.deepEqual(bank.parseResponse({...imported,answerPath:'answers'},{answers:'甲###丙'},{...q,type:'multiple'}).answers,['甲','丙']);
+assert.deepEqual(bank.parseResponse({...imported,answerPath:'answers'},{answers:'段落#原文'},{...q,type:'essay'}).answers,['段落#原文']);
+const same={name:'first',url:'https://example.com/query',data:{title:'${title}',key:'one'}};
+assert.equal(bank.normalizeConfigs([same,{...same,name:'renamed',data:{key:'one',title:'${title}'}},{...same,data:{...same.data,key:'two'}}]).length,2);
+assert.equal(bank.normalizeConfigs(Array(15).fill(same)).length,1);
+assert.throws(()=>bank.normalizeConfigs(Array.from({length:11},(_,i)=>({...same,url:`https://example.com/${i}`}))));
 console.log('PASS External bank form encoding, N1 status, OCS import, placeholders, type/blanks, safe parsing and generic compatibility');

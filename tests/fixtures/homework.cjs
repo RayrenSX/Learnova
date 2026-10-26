@@ -10,7 +10,10 @@ module.exports = async function({test,setup,choice,checked,logContains,aiSetting
     await one.page.locator('#cx-video-helper-host #homeworkList button').filter({hasText:'第一份作业'}).waitFor({state:'attached'});
     assert.equal(await one.page.locator('#cx-video-helper-host #homeworkList button').count(),2);
     assert.equal(await one.page.locator('#cx-video-helper-host #homeworkList button').filter({hasText:'截止作业'}).isDisabled(),true);
-    await one.page.locator('#cx-video-helper-host #tab-course').click();
+    assert.equal(await one.page.locator('#cx-video-helper-host #panel-course #homeworkPanel').count(),0);
+    assert.equal(await one.page.locator('#cx-video-helper-host #panel-home #homeworkPanel').count(),1);
+    await one.page.locator('#cx-video-helper-host #tab-home').click();
+    await one.page.locator('#cx-video-helper-host #homeworkPanel > summary').click();
     await one.page.locator('#cx-video-helper-host #homeworkList button').filter({hasText:'第一份作业'}).click();assert.equal(await one.page.evaluate(()=>window.openedWork),1);
     const two=await setup('<iframe src="/mooc2/work/list"></iframe>',{},[],{}, {'/mooc2/work/list':list});
     await two.page.locator('#cx-video-helper-host #homeworkList button').filter({hasText:'第一份作业'}).waitFor({state:'attached'});
@@ -81,7 +84,7 @@ module.exports = async function({test,setup,choice,checked,logContains,aiSetting
   });
   await test('课后作业：课程原生菜单可进入作业，详情页入口可以查看，多个保存按钮不盲点',async()=>{
     const one=await setup('<div onclick="window.workMenuClicks=(window.workMenuClicks||0)+1"><span class="nav_content">作业</span></div>');
-    await one.page.locator('#cx-video-helper-host #tab-course').click();await one.page.locator('#cx-video-helper-host #homeworkList button').click();
+    await one.page.locator('#cx-video-helper-host #tab-home').click();await one.page.locator('#cx-video-helper-host #homeworkPanel > summary').click();await one.page.locator('#cx-video-helper-host #homeworkList button').click();
     assert.equal(await one.page.evaluate(()=>window.workMenuClicks),1);
     const two=await setup('<a href="/work/doHomeWorkNew?workId=42">开始作业</a>',{},[],{}, {},{path:'/mooc2/work/detail'});
     assert.equal(await two.page.locator('#cx-video-helper-host #homeworkList button').count(),1);

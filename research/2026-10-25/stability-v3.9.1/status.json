@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-25",
+  "version": "3.9.1",
+  "scriptSha256": "2fdb339d5e06e13e866a723884dc9549c0e05a38b72c2b6363543af66387701e",
+  "installationFiles": [
+    "学习助手完整版.user.js",
+    "学习通学习助手.user.js"
+  ],
+  "identicalFiles": true,
+  "reproducibleBuild": true,
+  "checks": {
+    "syntax": true,
+    "fontCodec": true,
+    "webSearch": {
+      "passed": 11,
+      "total": 11
+    },
+    "externalBank": true,
+    "nativeTaskMetadata": true,
+    "fullSuite": {
+      "passed": 220,
+      "total": 220,
+      "shards": 4
+    },
+    "stabilitySubset": {
+      "passed": 11,
+      "total": 11
+    },
+    "p1p2Subset": {
+      "passed": 23,
+      "total": 23
+    },
+    "homeworkSubset": {
+      "passed": 13,
+      "total": 13
+    },
+    "pintia": {
+      "passed": 66,
+      "total": 66
+    }
+  },
+  "environment": "Isolated offline Edge; simulated page, media, AI and bank traffic; Pintia uses real CodeMirror 6 state",
+  "browserInventory": [],
+  "currentLiveAcceptance": false,
+  "currentRealAccountMutations": false,
+  "liveGaps": [
+    "Current real media acceptance",
+    "Live session and server confirmation",
+    "QR/device/location attendance",
+    "Attachment upload server confirmation",
+    "Recording and peer/group-specific layouts"
+  ],
+  "implementationLimits": [
+    "Unknown question totals/IDs need manual scope verification",
+    "Audio requires provider support",
+    "Unknown editor/player and other-platform layouts need adapters"
+  ],
+  "reusedCode": [
+    {
+      "project": "ocsjs/ocsjs",
+      "commit": "8b25a3f44523a0d4b7373878488056f4aa478cf6",
+      "source": "packages/scripts/src/projects/cx.ts searchJob",
+      "target": "src/platform-tasks.cjs",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2022 enncy"
+    },
+    {
+      "project": "This project Pintia adapter",
+      "source": "pintia/src/adapter.cjs cmView",
+      "target": "src/editor-models.cjs",
+      "license": "MIT"
+    }
+  ]
+}

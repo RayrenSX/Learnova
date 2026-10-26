@@ -41,7 +41,7 @@ function createAdapter(page) {
     return answerCandidates[0];
   }
 
-  function markdownText(element) {
+  function markdownText(element, includeImages = false) {
     const clone = element.cloneNode(true);
     const originals = [...element.querySelectorAll('[data-code], .cm-editor, .CodeMirror')].filter(node =>
       !node.parentElement.closest('[data-code], .cm-editor, .CodeMirror'));
@@ -56,6 +56,11 @@ function createAdapter(page) {
       pre.textContent = '\n' + (content ?? node.textContent) + '\n';
       copies[i]?.replaceWith(pre);
     });
+    if (includeImages) clone.querySelectorAll('img').forEach(image => {
+      const url=require('../../src/study-tools.cjs').imageURL(image.getAttribute('src'),doc.URL);
+      image.replaceWith(url?`\n![${(image.alt||'题图').replace(/[\[\]]/g,'')}](<${url}>)\n`:'[题图地址不可用]');
+    });
+    if (includeImages) clone.querySelectorAll('canvas,svg').forEach(node=>node.replaceWith('[页面图形：请补充截图]'));
     clone.querySelectorAll('button, svg, .cm-gutters, script, style').forEach(node => node.remove());
     // Keep one accessible representation of KaTeX, without hidden TeX and duplicated glyphs.
     clone.querySelectorAll('.katex').forEach(node => {
@@ -76,6 +81,11 @@ function createAdapter(page) {
     const text = markdownText(element);
     if (!text) throw new Error('题目描述为空，请等待题目加载');
     return text;
+  }
+  function exportStatement() {
+    const candidates=[...doc.querySelectorAll('.rendered-markdown')].filter(visible);
+    if(candidates.length!==1)throw new Error('无法唯一识别完整题面，请在原页面打开题目后导出');
+    return markdownText(candidates[0],true);
   }
 
   function language(target) {
@@ -308,6 +318,6 @@ function createAdapter(page) {
     target.write(backup.before);
     if (target.read() !== backup.before) throw new Error('编辑器未确认恢复');
   }
-  return {route, editor, statement, snapshot, guard, fill, undo, language, feedback, runTest, sampleInput, testInput, compilerOptions};
+  return {route, editor, statement, exportStatement, snapshot, guard, fill, undo, language, feedback, runTest, sampleInput, testInput, compilerOptions};
 }
 module.exports = {createAdapter};

@@ -15,7 +15,7 @@ const metadataMatch = source.match(/^\/\/ ==UserScript==\r?\n[\s\S]*?\/\/ ==\/Us
 if (!metadataMatch) throw new Error('学习通脚本缺少用户脚本元信息');
 let metadata = metadataMatch[0].replace(/\r\n/g, '\n')
   .replace(/(\/\/ @version\s+)\S+/, (_, prefix) => `${prefix}${packageInfo.version}`)
-  .replace(/\/\/ @description[^\n]*/, '// @description  学习通视频音频连播、阅读与答题；Pintia 独立代码编辑、平台测试、AI 纠错与填写。按网站自动加载。');
+  .replace(/\/\/ @description[^\n]*/, '// @description  学习通课程、题库与资料工具；Pintia 代码工作台；智慧树、智慧职教、MOOC 的播放、题目辅助与导出。按网站自动加载。');
 if (!metadata.includes('// @match        https://pintia.cn/problem-sets/*')) {
   metadata = metadata.replace('// @run-at', '// @match        https://pintia.cn/problem-sets/*\n// @run-at');
 }
@@ -25,12 +25,16 @@ if (greasyFork) {
   metadata = metadata.replace(/\/\/ @name[^\n]*/, '// @name         Learnova for Chaoxing')
     .replace(/^\/\/ @(?:updateURL|downloadURL)[^\n]*\n/gm, '')
     .replace(/^\/\/ @match[^\n]*pintia[^\n]*\n/gm, '')
+    .replace(/^\/\/ @match[^\n]*(?:zhihuishu|icve|icourse163)[^\n]*\n/gm, '')
     .replace(/\/\/ @description[^\n]*/, '// @description  学习通课程目录、视频音频播放、阅读、题库与可配置 AI 辅助。');
   metadata = metadata.replace('// @grant        unsafeWindow', '// @grant        GM_info\n// @grant        unsafeWindow');
 }
 const begin = '// CHAOXING_MODULE_BEGIN';
 const end = '// CHAOXING_MODULE_END';
 source = fs.readFileSync(path.join(root, 'src/chaoxing.js'), 'utf8').trim();
+const studyTools = esbuild.buildSync({entryPoints:[path.join(root,'src/study-tools.cjs')],bundle:true,write:false,platform:'browser',format:'iife',globalName:'StudyTools',minify}).outputFiles[0].text;
+const dashboard = esbuild.buildSync({entryPoints:[path.join(root,'src/course-dashboard.cjs')],bundle:true,write:false,platform:'browser',format:'iife',globalName:'CourseDashboard',minify}).outputFiles[0].text;
+source = source.replace(/\/\/ STUDY_TOOLS_BEGIN[\s\S]*?\/\/ STUDY_TOOLS_END/,()=>`// STUDY_TOOLS_BEGIN\n${studyTools}\n${dashboard}\n// STUDY_TOOLS_END`);
 for (const name of ['FONT_CODEC', 'WEB_SEARCH', 'EXTERNAL_BANK', 'HOMEWORK', 'TASKS', 'DRAFT_GUARD', 'AUXILIARY', 'OCS_RUNTIME']) {
   if (!source.includes(`// ${name}_BEGIN`) || !source.includes(`// ${name}_END`)) {
     throw new Error(`学习通源码缺少 ${name} 构建标记`);
@@ -53,10 +57,13 @@ const draftBundle = esbuild.buildSync({entryPoints: [path.join(root, 'src/draft-
   write: false, platform:'browser', format:'iife', globalName:'CXDraftGuard', minify}).outputFiles[0].text;
 source = source.replace(/\/\/ DRAFT_GUARD_BEGIN[\s\S]*?\/\/ DRAFT_GUARD_END/, `// DRAFT_GUARD_BEGIN\n${draftBundle}\n// DRAFT_GUARD_END`);
 source = source.replace(/\/\/ AUXILIARY_BEGIN[\s\S]*?\/\/ AUXILIARY_END/, () => '// AUXILIARY_BEGIN\n' + fs.readFileSync(path.join(root,'src/auxiliary.js'),'utf8') + '\n// AUXILIARY_END');
+source = source.replace('// EXTENDED_FEATURES', () => fs.readFileSync(path.join(root,'src/extended-features.js'),'utf8'));
+source = source.replace('// LEARNING_TOOLS', () => fs.readFileSync(path.join(root,'src/learning-tools.js'),'utf8'));
 const ocsBundle = esbuild.buildSync({entryPoints:[path.join(__dirname,'ocs-runtime.cjs')],bundle:true,write:false,platform:'browser',format:'iife',globalName:'CXOCSRuntime',minify}).outputFiles[0].text;
 source = source.replace(/\/\/ OCS_RUNTIME_BEGIN[\s\S]*?\/\/ OCS_RUNTIME_END/, () => '// OCS_RUNTIME_BEGIN\n'+ocsBundle+'\n// OCS_RUNTIME_END');
 const pintiaBundle = greasyFork ? '' : esbuild.buildSync({entryPoints: [path.join(root, 'pintia/src/main.cjs')], bundle: true,
   write: false, platform: 'browser', format: 'iife', charset: 'utf8', legalComments: 'inline'}).outputFiles[0].text;
+const platformsBundle = greasyFork ? '' : esbuild.buildSync({stdin:{contents:"require('./src/course-platforms.cjs').startPlatformWorkbench();",resolveDir:root},bundle:true,write:false,platform:'browser',format:'iife',charset:'utf8',legalComments:'inline'}).outputFiles[0].text;
 const output = `${metadata}
 
 (() => {
@@ -78,6 +85,8 @@ ${end}
 // PINTIA_MODULE_BEGIN
 ${pintiaBundle}
 // PINTIA_MODULE_END
+  } else if (/(^|\\.)(zhihuishu\\.com|icve\\.com\\.cn|icve\\.com|icourse163\\.org)$/.test(hostname)) {
+${platformsBundle}
   }
 })();
 `;

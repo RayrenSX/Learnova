@@ -5,6 +5,9 @@
 // FONT_CODEC_END
   // 独立实现；页面选择器参考用户提供的 Easy 脚本及 GitHub 项目，见 REFERENCES.md。
   const KEY = 'cxVideoHelper.settings.v1';
+  // STUDY_TOOLS_BEGIN
+// Bundled by tools/build-full.cjs.
+  // STUDY_TOOLS_END
   const currentEventTarget = Object.getOwnPropertyDescriptor(Event.prototype, 'currentTarget').get;
   function trustedClick(event, button) {
     // 校验原生事件与当前派发目标，拒绝直接调用 onclick 时伪造的 isTrusted 对象。
@@ -34,19 +37,19 @@
     enabled: true, speed: 'auto', muted: true, autoNext: true, skipFinished: true,
     requireWebSearch: false,
     searchMode: 'responses', searchUrl: 'https://api.tavily.com/search', searchKey: '', searchKeyOrigin: '',
-    autoResume: true, backgroundPlay: true, blockPause: true, randomFallback: true,
-    autoRead: true, readDelay: 5000, answerCache: true, visionImages: true,
-    externalBanks: [], examEnabled: false, examNext: false,
-    homeworkEnabled: true, homeworkNext: false, homeworkAutoSave: false, homeworkSubmit: false,
+    autoResume: true, backgroundPlay: true, blockPause: true, randomFallback: false,
+    autoRead: true, readDelay: 5000, answerCache: false, visionImages: false,
+    externalBanks: [], examEnabled: false, examNext: false, examSubmit: false,
+    homeworkEnabled: false, homeworkNext: false, homeworkAutoSave: false, homeworkSubmit: false,
     liveEnabled: true, signEnabled: false, discussionEnabled: false, discussionSubmit: false,
-    discussionPrompt: '', specialEnabled: true, specialCodeAI: false, specialAutoSubmit: false,
+    discussionPrompt: '', specialEnabled: false, specialCodeAI: false, specialAutoSubmit: false,
     uiTab: 'course', desktopNotifications: true, answerOnly: false,
-    overwriteAnswers: true,
-    compareRandomConfidence: true,
+    overwriteAnswers: false,
+    compareRandomConfidence: false,
     fillLowConfidenceBlanks: false,
     nextDelay: 3000, queryInterval: 3000, autoAnswer: false, autoSubmit: false,
     apiUrl: '', apiModel: '', apiKey: '', confidence: 0.85,
-    multiModelEnabled: false, voteModels: '', fuzzyMatching: true,
+    multiModelEnabled: false, voteModels: '', fuzzyMatching: false,
   };
   function readStore(key, fallback) {
     try {
@@ -61,7 +64,6 @@
   const settings = Object.assign({}, DEFAULTS, readStore(KEY, {}));
   if (!['responses', 'tavily'].includes(settings.searchMode)) settings.searchMode = 'responses';
   if (!['auto', 'normal'].includes(settings.speed)) settings.speed = 'auto';
-  delete settings.examSubmit; // 旧版考试自动交卷配置不再使用。
   // 只迁移用户配置，不载入旧版引擎；答题和提交由用户重新开启。
   if (!readStore('cxHelper.independentMigration.v1', false)) {
     const previous = readStore('easyFull.local.v1', {});
@@ -224,17 +226,17 @@
     writeStore(CACHE_KEY, answerCache);
     if (refs?.cacheInfo) refs.cacheInfo.textContent = `缓存 ${answerCache.length} 条`;
   }
-  function externalURL(raw) {
+  function externalURL(raw, config) {
     const url = new URL(raw);
-    if (url.username || url.password || (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)))) throw new Error('题库地址需 HTTPS 或本机 HTTP');
+    if (config?.profile === 'abc' && config.node === 'primary' && raw === CXExternalBank.ABC_NODES.primary) return url;
+    if (url.username || url.password || (url.protocol !== 'https:' && !(url.protocol === 'http:' && (config?.ocs || ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))))) throw new Error('题库地址需 HTTPS 或本机 HTTP；OCS 配置也支持 HTTP');
     return url;
   }
-  function validateBanks(items) {
-    if (!Array.isArray(items) || items.length > 10) throw new Error('题库配置需为数组，最多 10 个');
-    items = items.map(CXExternalBank.normalizeConfig);
+  function validateBanks(items, options) {
+    items = CXExternalBank.normalizeConfigs(items, options);
     for (const item of items) {
       if (!item || typeof item.name !== 'string' || !item.name.trim() || !['GET', 'POST'].includes(item.method || 'POST')) throw new Error('每个题库需 name、url，method 为 GET 或 POST');
-      externalURL(item.url);
+      externalURL(item.url, item);
       if (item.headers && (typeof item.headers !== 'object' || Array.isArray(item.headers))) throw new Error('headers 需为对象');
       if (item.data && (typeof item.data !== 'object' || Array.isArray(item.data))) throw new Error('data 需为对象');
       if (item.answerPath && typeof item.answerPath !== 'string') throw new Error('answerPath 需为字符串');
@@ -242,7 +244,7 @@
     return items;
   }
   async function requestBank(config, q, signal) {
-    if (config.allowCode === true && config.data) config = await CXOCSRuntime.transformData(config, CXExternalBank.fieldsOf(q), signal);
+    if (config.allowCode === true && config.data) config = await CXOCSRuntime.transformData(config, CXExternalBank.fieldsOf(q, config.ocs), signal);
     if (signal.aborted) throw new Error('请求已取消');
     return new Promise((resolve, reject) => {
       let handle, timer, settled = false;
@@ -252,15 +254,29 @@
       signal.addEventListener('abort', abort, { once: true });
       timer = setTimeout(() => { finish(new Error('题库请求超时')); handle?.abort(); }, 20000);
       try {
-        const request = CXExternalBank.makeRequest(config, { title: q.title, type: q.type, options: q.options, groups: q.groups.map(groupSignature), blanks: q.editors.length });
+        const request = CXExternalBank.makeRequest(config, { title: q.title, type: q.type, options: q.options, groups: q.groups.map(groupSignature), blanks: q.editors.length,
+          workType:q.doc && examDocument(q.doc)?'ks':q.doc && CXHomework.kind(q.doc)==='answer'?'zy':'zj',
+          courseId:q.doc?courseContext(q.doc.URL,q.doc).course:'' });
         const data = request.data;
-        const url = externalURL(request.url), method = config.method || 'POST';
+        const url = externalURL(request.url, config), method = config.method || 'POST';
+        if(config.profile==='abc') {
+          request.headers.t=String(Math.floor(Date.now()/1000));
+          if(q.doc) {
+            request.headers.referer=q.doc.URL;
+            const uid=/(?:^|;\s*)(?:UID|_uid)=([^;]*)/.exec(q.doc.cookie||'')?.[1];
+            request.headers.u=uid?decodeURIComponent(uid):'';
+          }
+        }
         if (method === 'GET') for (const [key, value] of Object.entries(data)) url.searchParams.set(key, String(value));
         const transport = { method, url: url.href, anonymous: true, timeout: 20000,
           headers: method === 'POST' ? request.headers : config.headers,
           ...(method === 'POST' ? { data: request.body } : {}),
           onload: async response => {
             if (settled || signal.aborted) return;
+            if (response.finalUrl) {
+              try { if (new URL(response.finalUrl).origin !== url.origin) throw new Error(); }
+              catch { finish(new Error('题库响应跳转到其他域名或地址无效，未采用')); return; }
+            }
             if (response.status < 200 || response.status >= 300) { finish(new Error(`题库 HTTP ${response.status} 错误`)); return; }
             try {
               const json = (config.responseType || config.contentType) === 'text' ? response.responseText : JSON.parse(response.responseText);
@@ -457,6 +473,7 @@
       && /^(?:交卷|提交试卷|提交考试|确认交卷)$/.test((button.textContent || button.value || button.getAttribute('aria-label') || '').replace(/\s/g, '')));
   }
   function processExamNext(doc, roots) {
+    if (examAttempts.has(doc)) return;
     if (!examDocument(doc) || !settings.examEnabled || !settings.examNext || !settings.autoAnswer || state.answerBusy || !roots.length) return;
     if (!roots.every(root => { const q = parseQuestion(root), record = state.questions.get(root); return record?.status === 'filled' && record.snapshot === snapshot(q); })) return;
     const key = JSON.stringify([doc.URL, roots.map(root => [root.id, root.getAttribute('data-id'), parseQuestion(root).key])]);
@@ -616,7 +633,7 @@
     return true;
   }
   function enabled(element) {
-    return visible(element) && !element.matches(':disabled, .swiper-button-disabled') && element.getAttribute('aria-disabled') !== 'true';
+    return visible(element) && !element.matches(':disabled, [disabled], .disabled, .swiper-button-disabled') && element.getAttribute('aria-disabled') !== 'true';
   }
   function content(element) {
     if (!element) return '';
@@ -641,7 +658,7 @@
     return true;
   }
   function supportedPage() {
-    return (CXHomework.kind(document) !== 'none' || allowedDocument(document) && (examDocument(document) || CXTasks.pageKind(document) !== 'none' || /\/(?:readsvr\/book\/mooc|mycourse\/(?:studentstudy|stu|studentcourse)|.*(?:api\/work|work\/dowork|work\/doHomeWork|work\/answer|work\/preview))/i.test(location.pathname)));
+    return (CXHomework.kind(document) !== 'none' || allowedDocument(document) && (examDocument(document) || CXTasks.pageKind(document) !== 'none' || /\/(?:readsvr\/book\/mooc|(?:mycourse|fanyav3)\/(?:studentstudy|stu|studentcourse)|.*(?:api\/work|work\/dowork|work\/doHomeWork|work\/answer|work\/preview))/i.test(location.pathname)));
   }
   function finished(element) {
     return Boolean(element?.closest?.('.ans-job-finished, .job-finished, [data-isfinished="1"], [data-finished="true"]')) || CXTasks.nativeFinished(element);
@@ -676,6 +693,8 @@
     ]);
   }
   function invalidateAnswers() {
+    cancelChat();
+    examLedgers.clear();
     cancelHomework();
     cancelAuxiliaryActions();
     state.manualController?.abort();
@@ -950,11 +969,13 @@
       let handle;
       let settled = false;
       let deadline;
+      let sent = false;
       const done = (error, value) => {
         if (settled) return;
         settled = true;
         clearTimeout(deadline);
         signal.removeEventListener('abort', abort);
+        try { if(sent) StudyTools.recordUsage({get:readStore,set:writeStore},service,body.model || service,value?.usage,Boolean(error)); } catch {}
         error ? reject(error) : resolve(value);
       };
       const abort = () => { done(new Error('请求已取消')); handle?.abort(); };
@@ -967,6 +988,7 @@
         handle?.abort();
       }, timeoutMs);
       try {
+        sent = true;
         handle = GM_xmlhttpRequest({
           method: 'POST', url, timeout: timeoutMs, anonymous: true,
           headers: { 'Content-Type': 'application/json', ...(options.headers || (settings.apiKey && new URL(url).origin === settings.apiKeyOrigin ? { Authorization: `Bearer ${settings.apiKey}` } : {})) },
@@ -1632,6 +1654,8 @@
   // AUXILIARY_BEGIN
 // Included by build.
   // AUXILIARY_END
+  // EXTENDED_FEATURES
+  // LEARNING_TOOLS
   function cancelHomework() {
     for (const session of homeworkSessions.values()) {
       session.save?.observer?.disconnect();
@@ -1647,6 +1671,7 @@
   }
   function manualExamPreview(doc) {
     if (!examDocument(doc) || !/\/exam-ans\/mooc2\/exam\/preview\/?$/.test(new URL(doc.URL).pathname)) return false;
+    if (settings.examSubmit) return false;
     if (!state.noticeKeys.has('notified-exam-preview')) {
       state.noticeKeys.add('notified-exam-preview');
       desktopNotice('exam-preview', '已到考试整卷预览，请核对答案后手动交卷及确认。');
@@ -1702,24 +1727,26 @@
     return [...document.querySelectorAll('li[cardid][id^="dct"]')].filter(visible);
   }
   function courseEntry() {
-    if (!/\/mycourse\/(?:stu|studentcourse)\/?$/.test(location.pathname)) return null;
-    const frame = document.querySelector('#frame_content-zj');
+    if (!/\/(?:(?:mooc2?-ans\/)?mycourse|fanyav3)\/(?:stu|studentcourse)\/?$/.test(location.pathname)) return null;
+    const frame = document.querySelector('#frame_content-zj, iframe[src*="/mycourse/studentcourse"]');
     if (frame && visible(frame)) {
       const url = new URL(frame.src, location.href);
-      if (url.origin === location.origin && /\/mycourse\/studentcourse$/.test(url.pathname)
-        && url.searchParams.get('courseid') === new URL(location.href).searchParams.get('courseid')) {
+      const source=courseContext(location.href,document),target=courseContext(url.href);
+      const sameCourse=(!source.course||!target.course||source.course===target.course)&&(!source.clazz||!target.clazz||source.clazz===target.clazz);
+      if (/\/(?:mooc2?-ans\/)?mycourse\/studentcourse\/?$/.test(url.pathname) && sameCourse
+        && (url.origin===location.origin || courseURL(url.href)?.id && courseURL(url.href)?.id===currentQueueCourse()?.id)) {
         return { element: frame, url: url.href, description: '进入当前课程章节目录' };
       }
     }
-    if (/\/mycourse\/stu\/?$/.test(location.pathname) && (!frame || !visible(frame))) {
-      const menu = [...document.querySelectorAll('.nav_content,a,li,[role="tab"]')].find(item =>
+    if (/\/(?:mycourse|fanyav3)\/stu\/?$/.test(location.pathname) && (!frame || !visible(frame))) {
+      const menu = [...document.querySelectorAll('.nav_content,a,li,[role="tab"],[data-url*="studentcourse"]')].find(item =>
         item.textContent.trim() === '章节' && enabled(item));
       if (menu) return { element: menu, description: '打开当前课程章节入口' };
     }
-    const chapter = [...document.querySelectorAll('.chapter_item[id^="cur"][onclick]')].find(item => {
+    const chapter = [...document.querySelectorAll('.chapter_item[id^="cur"][onclick], .chapter_item[onclick*="toOld"]')].find(item => {
       if (!visible(item) || item.matches('[aria-disabled="true"], .locked') || item.querySelector('.icon_lock, .catalog_lock')) return false;
-      const pending = item.querySelector('.catalog_points_yi');
-      return !settings.skipFinished || (pending && Number(pending.textContent.trim()) > 0);
+      const pending = item.querySelector('.catalog_points_yi, input.knowledgeJobCount');
+      return !settings.skipFinished || (pending ? Number(pending.value ?? pending.textContent.trim()) > 0 : !item.querySelector('.icon_Completed,.icon_yiwanc'));
     });
     return chapter ? { element: chapter, description: `进入未完成章节：${chapter.title || chapter.textContent.trim()}` } : null;
   }
@@ -1762,9 +1789,10 @@
     if (settings.answerOnly) return false;
     if (examDocument(document) || /\/(?:work\/|api\/work)/i.test(location.pathname)) return false;
     if (!settings.backgroundPlay && document.hidden) return false;
-    if (scanResult.blocked.length || state.answerBusy || verificationPage(scanResult.docs)) return false;
+    if (state.answerBusy || verificationPage(scanResult.docs)) return false;
     if (scanResult.docs.some(auxiliaryBlocking)) return false;
     if (courseEntry()) return true;
+    if (scanResult.blocked.length) return false;
     if (settings.skipFinished && chapterCompleted()) return true;
     if (scanResult.docs.some((doc) => questionRoots(doc).length)) return false;
     if ([...state.media.values()].some((r) => !r.done)) return false;
@@ -2024,6 +2052,7 @@
   }
   function scan() {
     if (!state.running || state.disposed) return;
+    if (!queueMayStudy()) return;
     try {
       if (!allowedDocument(document)) {
         stop(); refs.refreshHomework?.(collect(document).docs);
@@ -2145,11 +2174,13 @@
         if (next) void answerOne(next.q, next.record);
       }
       for (const { doc, roots } of rootsByDoc) processSubmission(doc, roots);
+      for (const doc of result.docs) processExamSubmission(doc);
       for (const { doc, roots } of rootsByDoc) processExamNext(doc, roots);
       for (const doc of result.docs) processHomework(doc);
       refs.refreshHomework?.(result.docs);
       refs.refreshTasks?.(result.docs);
       scheduleNext(result);
+      tickCourseQueue(result);
       renderStatus();
     } catch (error) { once(`scan:${error.message}`, `扫描失败：${error.message}`, 'error'); }
     clearTimeout(state.timer);
@@ -2157,6 +2188,7 @@
   }
   function start() {
     if (state.disposed) return;
+    if(spacePage())return;
     if (!allowedDocument(document)) {
       refs.refreshHomework?.(collect(document).docs);
       log(CXHomework.kind(document) !== 'none' ? '当前作业为已提交/只读状态或作业处理已关闭，请在原页面查看' : '请先开启考试处理开关', 'warn'); return;
@@ -2180,6 +2212,7 @@
     start();
   }
   function stop() {
+    pauseOwnedQueue();
     state.running = false;
     state.manualController?.abort();
     syncBackground();
@@ -2192,6 +2225,7 @@
     renderStatus();
   }
   function retry() {
+    for (const doc of collect(document).docs) retryExamSubmission(doc);
     for (const session of homeworkSessions.values()) {
       if (session.next) session.next = null;
       if (session.save?.status === 'unknown') { session.save.observer?.disconnect(); session.save = null; }
@@ -2245,7 +2279,6 @@
     if (!refs) return;
     refs.apiKeyInfo.textContent = settings.apiKey ? '密钥已配置 · 留空保留，填写可替换' : '尚未配置密钥 · 本机免密接口可留空';
     refs.externalInfo.textContent = `已保存 ${settings.externalBanks.length} 个外部题库。`;
-    refs.n1KeyInfo.textContent = settings.externalBanks.some(item => item.profile === 'n1') ? 'N1 密钥已配置 · 留空保留，不回显' : 'N1 未配置 · 填入题库密钥并保存';
     refs.searchKeyInfo.textContent = settings.searchKey ? '搜索密钥已配置 · 留空保留，不回显' : '独立搜索需要 Tavily 密钥；不复用答题服务密钥';
   }
   function registerPrivateSettings() {
@@ -2269,7 +2302,7 @@
       const value = ask('粘贴完整外部题库 JSON（取消或留空保留原配置，输入 [] 清空）：', '');
       if (!value?.trim()) return;
       try {
-        const banks = validateBanks(JSON.parse(value));
+        const banks = validateBanks(JSON.parse(value), {importOCS:true});
         settings.externalBanks = banks; invalidateAnswers(); writeStore(KEY, settings); renderPrivateSettings();
         log(`已保存 ${banks.length} 个外部题库`);
       } catch { log('题库配置未保存：请检查 JSON、题库地址和字段格式', 'error'); }
@@ -2330,7 +2363,7 @@
             <div class="row"><label for="homeworkAutoSave">课后作业填写后暂存</label><input type="checkbox" id="homeworkAutoSave"></div>
             <div class="row"><label for="homeworkNext">课后作业保存确认后翻页</label><input type="checkbox" id="homeworkNext"></div>
             <div class="row"><label for="homeworkSubmit">整份课后作业已确认后提交</label><input type="checkbox" id="homeworkSubmit"></div>
-            <p class="hint">课后作业独立控制暂存、翻页与提交，默认仅接入填写。自动答题仍需开启；题号/题量不完整、暂存未确认时停留核对。考试交卷仍为手动。</p>
+            <p class="hint">课后作业独立控制暂存、翻页与提交，默认仅接入填写。自动答题仍需开启；题号/题量不完整、暂存未确认时停留核对。考试自动交卷有独立开关。</p>
             <div class="row"><label for="liveEnabled">直播任务保持并等待完成</label><input type="checkbox" id="liveEnabled"></div>
             <div class="row"><label for="signEnabled">自动点击签到</label><input type="checkbox" id="signEnabled"></div>
             <div class="row"><label for="discussionEnabled">生成讨论草稿</label><input type="checkbox" id="discussionEnabled"></div>
@@ -2345,7 +2378,7 @@
             <div class="row"><label for="examEnabled">允许处理考试页面</label><input type="checkbox" id="examEnabled"></div>
             <div class="row"><label for="examNext">考试填写后进入下一题</label><input type="checkbox" id="examNext"></div>
             <p class="hint" data-setting-group="answer">考试处理及下一题默认关闭；自动答题也需开启。图片会发至配置的视觉模型。组合题按子题顺序填写；未识别的控件留待处理。</p>
-            <p class="hint">自动提交关闭时仅填写，请核对后手动提交。未解决题目会留待处理；考试必须手动交卷及确认。</p>
+            <p class="hint">章节自动提交关闭时仅填写，请核对后手动提交。考试自动交卷单独控制，默认关闭。</p>
           </details>
           <details id="apiSettings"><summary>AI 接口配置</summary>
             <label class="field"><span>OpenAI 兼容接口地址</span><input id="apiUrl" placeholder="https://服务商域名/v1/chat/completions" type="url"></label>
@@ -2395,23 +2428,17 @@
         </main>
       </section>`;
     shadow.querySelector('.config').insertAdjacentHTML('beforeend', `
-      <details id="externalSettings"><summary>外部题库</summary>
+      <details id="externalSettings"><summary>通用题库 / OCS 配置</summary>
       <p class="hint">支持多个 JSON 题库，先查本地及缓存，再查外部题库，最后 AI。配置可包含密钥，请勿分享。</p>
       <p id="externalInfo" class="hint"></p>
-      <label class="field"><span>N1搜题助手密钥</span><input id="n1KeyInput" type="password" autocomplete="new-password" spellcheck="false" placeholder="填入 N1 题库密钥，留空保留"></label>
-      <p id="n1KeyInfo" class="hint"></p>
-      <div class="actions"><button id="saveN1" class="primary">保存 N1 题库</button><button id="testN1">测试 N1 题库</button></div>
-      <p id="n1Feedback" class="hint" role="status"></p>
-      <p class="hint">使用 HTTPS 表单 POST，只接受 code=1 的答案。测试会查询文档示例题，成功可能消耗一次题库配额。关闭逐题联网核查时按题库优先级使用；题库命中不代表网页搜索。</p>
-      <label class="field"><span>外部题库 JSON</span><textarea id="externalInput" rows="6" spellcheck="false" placeholder="粘贴完整 JSON 配置；留空保留原配置"></textarea></label>
+      <label class="field"><span>外部题库 / OCS 题库 JSON</span><textarea id="externalInput" rows="6" spellcheck="false" placeholder="直接粘贴 OCS 题库 JSON 数组；留空保留原配置"></textarea></label>
       <div class="actions"><button id="saveExternal" class="primary">保存题库配置</button><button id="clearExternal">清空外部题库</button></div>
       <p id="externalFeedback" class="hint" role="status"></p>
-      <p class="hint">支持 JSON/表单 POST 与 GET，OCS 的 fetch/GM 请求及题干占位符。N1 配置自动转为 HTTPS。可执行 handler 与 data.handler 需设置 allowCode:true；仅在限时隔离环境中转换请求字段或响应，不能访问课程页面、存储或网络。</p></details>
+      <p class="hint">支持 OCS 标准题库配置，不限于 N1。支持 GET、JSON/表单 POST、fetch/GM、json/text、题干和题型占位符及 handler / data.handler。导入后自动适配并去重；转换代码在限时隔离环境运行。依赖页面、存储或额外网络的扩展代码不兼容。HTTP 服务会明文传输题目与密钥。</p></details>
       <details id="cacheSettings"><summary>答案缓存</summary><span id="cacheInfo"></span><div class="actions"><button id="exportCache">导出缓存</button><button id="clearCache">清空缓存</button></div><p class="hint">最多 1000 条；仅复用当前来源配置下、30 天内的新版 AI/外部题库缓存。旧版或过期记录不再自动采用；随机与低信心答案不缓存，选项换序后重新查询。</p></details>`);
     const ids = ['testNotification', 'testBrowserNotification', 'desktopNotifications', 'status', 'toggle', 'retry', 'next', 'resumeMedia', 'speed', 'autoResume', 'blockPause', 'backgroundPlay', 'muted', 'autoNext', 'skipFinished', 'autoRead', 'readDelay', 'autoAnswer', 'requireWebSearch', 'overwriteAnswers', 'randomFallback', 'compareRandomConfidence', 'fillLowConfidenceBlanks', 'autoSubmit', 'visionImages', 'answerCache', 'examEnabled', 'examNext', 'externalInfo', 'cacheInfo', 'clearCache', 'exportCache',
       'homeworkEnabled', 'homeworkAutoSave', 'homeworkNext', 'homeworkSubmit',
       'liveEnabled', 'signEnabled', 'discussionEnabled', 'discussionSubmit', 'specialEnabled', 'specialCodeAI', 'specialAutoSubmit', 'discussionPrompt',
-      'n1KeyInput', 'n1KeyInfo', 'saveN1', 'testN1', 'n1Feedback',
       'searchMode', 'searchUrl', 'searchKeyInput', 'searchKeyInfo', 'saveSearch', 'testSearch', 'exportSearch', 'clearSearchKey', 'searchFeedback',
       'manualQuestion', 'manualOptions', 'manualSearch', 'clearManualSearch', 'manualResult', 'manualType', 'manualBlanks', 'useSelection', 'cancelManualSearch',
       'multiModelEnabled', 'voteModels',
@@ -2500,8 +2527,6 @@
     };
     refs.saveApi.onclick = event => { if (trustedClick(event, refs.saveApi)) saveAPI(); };
     refs.testApi.onclick = event => { if (trustedClick(event, refs.testApi)) void testAPI(); };
-    refs.saveN1.onclick = event => { if (trustedClick(event, refs.saveN1)) saveN1(); };
-    refs.testN1.onclick = event => { if (trustedClick(event, refs.testN1)) void testN1(); };
     refs.saveSearch.onclick = event => { if (trustedClick(event, refs.saveSearch)) saveSearch(); };
     refs.testSearch.onclick = event => { if (trustedClick(event, refs.testSearch)) void testSearch(); };
     refs.manualSearch.onclick = event => { if (trustedClick(event, refs.manualSearch)) void manualSearch(); };
@@ -2527,10 +2552,10 @@
       if (!trustedClick(event, refs.saveExternal)) return;
       if (!refs.externalInput.value.trim()) { refs.externalFeedback.textContent = '未输入新配置，保留原题库'; return; }
       try {
-        const banks = validateBanks(JSON.parse(refs.externalInput.value));
+        const banks = validateBanks(JSON.parse(refs.externalInput.value), {importOCS:true});
         settings.externalBanks = banks; invalidateAnswers(); writeStore(KEY, settings); refs.externalInput.value = ''; renderPrivateSettings();
         refs.externalFeedback.textContent = `已保存 ${banks.length} 个外部题库`; log(refs.externalFeedback.textContent);
-      } catch { refs.externalFeedback.textContent = '未保存，请检查 JSON、HTTPS 地址、响应类型；可执行 OCS handler 需显式设置 allowCode:true'; }
+      } catch { refs.externalFeedback.textContent = '未保存，请检查 JSON 数组、题库地址、响应类型及 handler 格式（最多 10 个不同题库）'; }
     };
     refs.clearExternal.onclick = event => {
       if (!trustedClick(event, refs.clearExternal)) return;
@@ -2580,13 +2605,18 @@
     refs.drag.onpointerup = refs.drag.onpointercancel = () => { drag = null; };
     document.documentElement.appendChild(host);
     if (typeof StudyHelperUpdate !== 'undefined') StudyHelperUpdate.mount(shadow);
-    buildCoursePanel(shadow, host);
-    buildHomeworkPanel(shadow);
-    buildTaskPanel(shadow);
+    if(!spacePage()){
+      buildCoursePanel(shadow, host);
+      buildHomeworkPanel(shadow);
+      buildTaskPanel(shadow);
+    }
+    buildExtendedFeatures(shadow);
+    if(!spacePage())buildLearningTools(shadow);
     refs.bankInfo.textContent = `已保存 ${bank.length} 条题目`;
     renderStatus();
   }
   function buildTabs(shadow) {
+    const space=spacePage();shadow.host.dataset.page=space?'space':'study';
     const style = document.createElement('style');
     style.textContent = `
       :host{color:#203830;font:13px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;color-scheme:light}
@@ -2659,13 +2689,13 @@
     const main = shadow.querySelector('main'), config = shadow.querySelector('.config');
     const tabs = document.createElement('nav'); tabs.className = 'tabs'; tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', '助手设置');
     config.before(tabs);
-    const definitions = [['course', '目录'], ['home', '常用'], ['playback', '播放'], ['reading', '阅读'], ['answer', '答题'], ['sources', 'AI / 题库'], ['records', '记录']];
+    const definitions = [['course', '目录'], ['home', '常用'], ['queue', '课程队列'], ['chat', 'AI 聊天'], ['playback', '播放'], ['reading', '阅读'], ['answer', '答题'], ['sources', 'AI / 题库'], ['records', '记录']];
     const descriptions = { course: ['课程目录', ''], home: ['常用功能', '常用开关即时保存。'], playback: ['播放与章节', '调整播放方式，安排章节衔接。'], reading: ['阅读与翻页', '文档、PPT、书籍与链接统一管理。'], answer: ['答题与核查', '先设置答题方式，再按需调整策略。'], sources: ['AI 与题库', '接口、密钥与题库，在这里统一配置。'], records: ['记录与提醒', '查看运行情况、答题记录和桌面提醒。'] };
     const panels = Object.fromEntries(definitions.map(([id, label]) => {
       const panel = document.createElement('section'); panel.className = 'tab-panel'; panel.id = `panel-${id}`; panel.setAttribute('role', 'tabpanel');
       panel.setAttribute('aria-labelledby', `tab-${id}`); panel.tabIndex = 0;
-      const heading = document.createElement('h3'); heading.textContent = descriptions[id][0]; panel.appendChild(heading);
-      const intro = document.createElement('p'); intro.className = 'section-intro'; intro.textContent = descriptions[id][1]; panel.appendChild(intro);
+      const heading = document.createElement('h3'); heading.textContent = descriptions[id]?.[0] || label; panel.appendChild(heading);
+      const intro = document.createElement('p'); intro.className = 'section-intro'; intro.textContent = descriptions[id]?.[1] || ''; panel.appendChild(intro);
       config.appendChild(panel); return [id, panel];
     }));
     const first = config.querySelector('details');
@@ -2727,13 +2757,15 @@
     const note = document.createElement('p'); note.className = 'home-note'; note.textContent = '目录支持搜索与筛选 · 常用开关自动保存'; panels.home.appendChild(note);
     const settingsTabs = document.createElement('nav'); settingsTabs.className = 'settings-tabs'; settingsTabs.setAttribute('role', 'tablist'); settingsTabs.setAttribute('aria-label', '详细设置'); tabs.after(settingsTabs);
     const settingsButton = document.createElement('button'); settingsButton.id = 'tab-settings'; settingsButton.textContent = '设置'; settingsButton.setAttribute('role', 'tab'); settingsButton.setAttribute('aria-controls', 'panel-playback panel-reading panel-answer panel-sources');
-    let lastSettings = 'playback';
-    const isSettings = id => !['course', 'home', 'records'].includes(id);
+    let lastSettings = space?'sources':'playback';
+    const isSettings = id => !['course', 'home', 'records', 'queue', 'chat'].includes(id);
     const buttons = [];
     const select = id => {
+      if(space&&['course','chat','records'].includes(id))id='queue';
+      if(!space&&id==='queue'){id='home';const section=shadow.getElementById('courseQueueSection');if(section)section.open=true;}
       for (const [key, panel] of Object.entries(panels)) {
-        panel.hidden = id === 'all' ? ['home', 'course'].includes(key) : key !== id;
-        panel.setAttribute('aria-labelledby', id === 'all' ? 'tab-all' : `tab-${key}`);
+        panel.hidden = key==='queue'&&!space ? false : id === 'all' ? ['home', 'course',...(space?['chat','records','queue']:[])].includes(key) : key !== id;
+        panel.setAttribute('aria-labelledby', key==='queue'&&!space?'courseQueueHeading':id === 'all' ? 'tab-all' : `tab-${key}`);
       }
       for (const button of buttons) { const active = button.dataset.tab === id; button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1; }
       settingsTabs.hidden = !isSettings(id);
@@ -2741,7 +2773,7 @@
       if (isSettings(id)) lastSettings = id;
       shadow.host.dataset.view = id;
       config.scrollTop = 0;
-      settings.uiTab = id; writeStore(KEY, settings);
+      if(space)settings.spaceUiTab=id;else settings.uiTab=id;writeStore(KEY, settings);
     };
     settingsButton.onclick = () => select(lastSettings);
     refs.selectTab = select;
@@ -2752,7 +2784,7 @@
       button.onkeydown = event => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
         event.preventDefault();
-        const siblings = [...button.parentElement.querySelectorAll('[role=tab]')];
+        const siblings = [...button.parentElement.querySelectorAll('[role=tab]')].filter(node=>!node.hidden);
         const index = siblings.indexOf(button), target = event.key === 'Home' ? 0 : event.key === 'End' ? siblings.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + siblings.length) % siblings.length;
         siblings[target].click(); siblings[target].focus();
       };
@@ -2761,10 +2793,18 @@
     tabs.insertBefore(settingsButton, shadow.getElementById('tab-records'));
     // 设置入口与目录、常用、记录使用同一方向顺序。
     settingsButton.onkeydown = event => {
-      const target = { ArrowLeft: 'home', ArrowRight: 'records', Home: 'course', End: 'records' }[event.key];
-      if (!target) return; event.preventDefault(); const button = shadow.getElementById(`tab-${target}`); button.click(); button.focus();
+      if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+      event.preventDefault();const siblings=[...tabs.querySelectorAll('[role=tab]')].filter(node=>!node.hidden),index=siblings.indexOf(settingsButton),target=event.key==='Home'?0:event.key==='End'?siblings.length-1:(index+(event.key==='ArrowRight'?1:-1)+siblings.length)%siblings.length;siblings[target].click();siblings[target].focus();
     };
-    select([...definitions.map(d => d[0]), 'all'].includes(settings.uiTab) ? settings.uiTab : 'course');
+    shadow.getElementById('tab-queue').hidden=!space;
+    if(space){
+      for(const id of ['course','chat','records'])shadow.getElementById('tab-'+id).hidden=true;
+      tabs.prepend(shadow.getElementById('tab-queue'));
+      const spaceStyle=document.createElement('style');spaceStyle.textContent=':host([data-page=space]) .overview,:host([data-page=space]) .command-bar,:host([data-page=space]) .quick-grid,:host([data-page=space]) #panel-home>.section-label:first-of-type,:host([data-page=space]) #homeworkPanel,:host([data-page=space]) #learningTools,:host([data-page=space]) .shortcut[data-destination=records]{display:none!important}:host([data-page=space]) .tabs{grid-template-columns:repeat(3,minmax(0,1fr))!important}:host([data-page=space]) [hidden]{display:none!important}';shadow.append(spaceStyle);
+      panels.home.querySelector('.section-intro').textContent='配置学习偏好后，在课程队列选择需要学习的课程。';
+      note.textContent='空间页管理课程队列 · 课程学习页显示目录与播放控制';
+    }
+    select(space?(['queue','home','playback','reading','answer','sources','all'].includes(settings.spaceUiTab)?settings.spaceUiTab:'queue'):settings.uiTab==='queue'?'course':[...definitions.map(d => d[0]), 'all'].includes(settings.uiTab) ? settings.uiTab : 'course');
   }
   function buildCoursePanel(shadow, host) {
     const panel = shadow.getElementById('panel-course');
@@ -3002,9 +3042,9 @@
     refresh();
   }
   function buildHomeworkPanel(shadow) {
-    const section = document.createElement('details'); section.id = 'homeworkPanel'; section.open = true;
+    const section = document.createElement('details'); section.id = 'homeworkPanel';
     section.innerHTML = '<summary>课后作业</summary><p id="homeworkStatus" class="hint" role="status"></p><div id="homeworkList"></div><div class="actions"><button id="homeworkRefresh">刷新作业入口</button><button id="homeworkSave">暂存当前作业</button></div>';
-    shadow.getElementById('panel-course').prepend(section);
+    shadow.getElementById('panel-home').append(section);
     const status = section.querySelector('#homeworkStatus'), list = section.querySelector('#homeworkList'), save = section.querySelector('#homeworkSave');
     let signature = '';
     refs.refreshHomework = (docs = collect(document).docs) => {
@@ -3053,33 +3093,6 @@
     refs.refreshHomework();
     const timer = setInterval(() => refs.refreshHomework(), 1500);
     window.addEventListener('pagehide', event => { if (!event.persisted) clearInterval(timer); });
-  }
-  function saveN1() {
-    try {
-      const previous = settings.externalBanks.find(item => item.profile === 'n1');
-      const key = refs.n1KeyInput.value.trim() || previous?.data?.key;
-      const config = CXExternalBank.n1Config(key);
-      const existing = settings.externalBanks.filter(item => item.profile !== 'n1');
-      if (existing.length >= 10) throw new Error('题库最多 10 个，请先移除一个配置');
-      settings.externalBanks = validateBanks([config, ...existing]);
-      invalidateAnswers(); writeStore(KEY, settings); refs.n1KeyInput.value = ''; renderPrivateSettings();
-      refs.n1Feedback.textContent = 'N1 题库已保存，使用 HTTPS 表单接口';
-      return true;
-    } catch { refs.n1Feedback.textContent = '请填写有效的 N1 题库密钥，并检查题库数量'; return false; }
-  }
-  async function testN1() {
-    if (!saveN1()) return;
-    const config = settings.externalBanks.find(item => item.profile === 'n1');
-    refs.testN1.disabled = true; refs.n1Feedback.textContent = '正在查询 N1 文档示例题…';
-    try {
-      const q = { title: '与高血压发病有关的饮食因素是()', type: 'single', groups: [], editors: [],
-        options: ['动物蛋白摄入过多', '植物蛋白摄入过多', '素食过多', '钙盐过多', '钠盐食入过多'].map((text, i) => ({ text, label: String.fromCharCode(65 + i), value: String.fromCharCode(65 + i) })) };
-      const result = await requestBank(config, q, new AbortController().signal);
-      refs.n1Feedback.textContent = 'N1 查询成功，答案格式及选项匹配通过'
-        + (result.quota?.remaining !== undefined ? `；剩余次数 ${result.quota.remaining}` : '');
-      log(refs.n1Feedback.textContent, 'success');
-    } catch (error) { refs.n1Feedback.textContent = error.message; log(error.message, 'warn'); }
-    finally { refs.testN1.disabled = false; }
   }
   function saveSearch() {
     try {
@@ -3262,9 +3275,11 @@
     refs.resumeMedia.disabled = Boolean(settings.answerOnly);
     if (settings.answerOnly) refs.status.textContent = `只答题 · ${refs.status.textContent}`;
   }
+  let embeddedPlatformFrame=false;
   // 同源子框架交给顶层扫描；跨域阅读器独立运行，避免重复窗口和双重答题。
   if (window !== window.top) {
     try { if (window.top.document) return; } catch { /* 跨域阅读框架 */ }
+    try{embeddedPlatformFrame=/(^|\.)chaoxing\.com$/.test(new URL(document.referrer).hostname);}catch{}
     if (/\/readsvr\/book\/mooc/.test(location.pathname) || cloudReaderDocument(document) || CXTasks.pdfResource(document)) {
       state.running = Boolean(settings.enabled);
     const tick = () => {
@@ -3287,6 +3302,9 @@
     window.addEventListener('pagehide',event => {if(!event.persisted) clearInterval(crossTimer);});
   }
   buildUI();
+  // Cross-origin native activities keep their worker and shared stop switch,
+  // while the parent course page owns the visible controls.
+  if(embeddedPlatformFrame){const host=document.getElementById('cx-video-helper-host');host.hidden=true;host.style.display='none';}
   registerPrivateSettings();
   let resumeFromCache = false;
   window.addEventListener('pagehide', event => {

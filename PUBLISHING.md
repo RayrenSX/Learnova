@@ -1,6 +1,6 @@
 # Publishing Learnova
 
-All editions currently use **0.1.3**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+All editions currently use **0.1.4**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
 
 ## Release process
 
@@ -19,7 +19,7 @@ All editions currently use **0.1.3**. The root `package.json` is the build versi
    npm run test:distribution
    ```
 
-3. Commit and push `main`, then push the matching tag, for example `v0.1.3`.
+3. Commit and push `main`, then push the matching tag, for example `v0.1.4`.
 4. GitHub Actions builds all editions, verifies syntax, update behavior and distribution limits, and publishes the release assets. A tag that differs from the package version is rejected. Main branch pushes build without publishing.
 5. Confirm that the latest release downloads contain the intended version. Check each script site's source synchronization status and publicly accessible installation link.
 

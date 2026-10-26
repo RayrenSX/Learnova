@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-25",
+  "version": "3.9.0",
+  "scriptSha256": "ab9129b7657feab5f7c2f5b41f979c4ff3872dfe45cb01bedb5b8247f8596760",
+  "installationFiles": [
+    "学习通学习助手.user.js",
+    "学习助手完整版.user.js"
+  ],
+  "identicalFiles": true,
+  "reproducibleBuild": true,
+  "checks": {
+    "syntax": true,
+    "fontCodec": true,
+    "webSearch": {
+      "passed": 11,
+      "total": 11
+    },
+    "externalBank": true,
+    "fullSuite": {
+      "passed": 209,
+      "total": 209,
+      "shards": 4
+    },
+    "p1p2Subset": {
+      "passed": 23,
+      "total": 23
+    },
+    "homeworkSubset": {
+      "passed": 13,
+      "total": 13
+    },
+    "pintia": {
+      "passed": 66,
+      "total": 66
+    }
+  },
+  "retest": {
+    "firstRunPassed": 206,
+    "total": 209,
+    "retestedFullShards": [
+      1,
+      2,
+      3
+    ],
+    "unchangedDelivery": true,
+    "reason": "Update old fixture expectations for normalized POST method and expanded cache source fingerprint"
+  },
+  "environment": "Isolated offline Edge; simulated page, AI and bank traffic; Pintia uses real CodeMirror 6 state",
+  "currentLiveAcceptance": false,
+  "currentRealAccountMutations": false,
+  "liveGaps": [
+    "Live session and server confirmation",
+    "QR/device/location attendance",
+    "Attachment upload server confirmation",
+    "Recording and peer/group-specific layouts",
+    "Current real media acceptance"
+  ],
+  "implementationLimits": [
+    "Unknown question totals/IDs require manual scope verification",
+    "Imported handlers have no page, GM or network access",
+    "Audio requires provider support",
+    "Other platforms and P3 remain outside scope"
+  ]
+}

@@ -41,12 +41,14 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
       if (url.pathname === '/test-image.png') return route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64') });
       const html = frames[url.pathname];
       if (url.pathname === '/mycourse/studentstudy') return route.fulfill({ contentType: 'text/html', body: wrap(body) });
-      if (mediaOptions.path && url.pathname === mediaOptions.path) return route.fulfill({ contentType: 'text/html', body: wrap(body) });
+      if (mediaOptions.path && url.pathname === new global.URL(mediaOptions.path,BASE).pathname) return route.fulfill({ contentType: 'text/html', body: wrap(body) });
+      if (mediaOptions.url && url.pathname === new global.URL(mediaOptions.url).pathname) return route.fulfill({ contentType: 'text/html', body: wrap(body) });
       if (html !== undefined) return route.fulfill({ contentType: 'text/html', body: html.startsWith('<html') ? html : wrap(html) });
       return route.fulfill({ status: 404, body: 'Blocked by offline test' });
     });
     await context.addInitScript(({ store, bankKey, settings, bank, api, mediaOptions }) => {
-      const values = { [store]: { enabled: false, autoNext: true, autoAnswer: true, requireWebSearch: false, compareRandomConfidence: false, overwriteAnswers: false, blockPause: false, randomFallback: false, answerCache: false, uiTab: 'all', ...settings }, [bankKey]: bank, 'cxHelper.answers.v1': mediaOptions.cache || [] };
+      const values = { [store]: { enabled: false, autoNext: true, autoAnswer: true, requireWebSearch: false, compareRandomConfidence: false, overwriteAnswers: false, blockPause: false, randomFallback: false, answerCache: false, homeworkEnabled: true, specialEnabled: true, visionImages: true, fuzzyMatching: true, uiTab: 'all', ...settings }, [bankKey]: bank, 'cxHelper.answers.v1': mediaOptions.cache || [] };
+      if(mediaOptions.cleanSettings) values[store] = settings;
       if (mediaOptions.persistentStore) Object.assign(values,JSON.parse(sessionStorage.getItem('cx-fixture-store') || '{}'));
       if (mediaOptions.defaultWebSearch) delete values[store].requireWebSearch;
       window.originalPausePrototype = HTMLMediaElement.prototype.pause;
@@ -124,11 +126,11 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
           if (api.byTitle?.[question.question]) answer = api.byTitle[question.question];
           const content = api.raw ?? JSON.stringify(answer);
           options.onload({ status: 200, finalUrl: api.finalUrl, responseText: JSON.stringify(payload.tools ? (api.responses ?? {
-            status: 'completed', output: [
+            status: 'completed', usage: api.usage, output: [
               ...(!api.noSearch ? [{ type: 'web_search_call', id: 'test-search', status: 'completed', action: { type: 'search', query: '资料查询', sources: [{ title: '来源', url: 'https://evidence.example/reference' }] } }] : []),
               { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: content }] },
             ],
-          }) : { choices: [{ message: { content } }] }) });
+          }) : { usage: api.usage, choices: [{ message: { content } }] }) });
         }, api.delayByTitle?.[question.question] ?? api.delay ?? 50);
         return { abort: () => { clearTimeout(timer); window.apiAborts++; options.onabort?.(); } };
       };
@@ -163,7 +165,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
-    await page.goto(mediaOptions.path ? BASE + mediaOptions.path : URL);
+    await page.goto(mediaOptions.url || (mediaOptions.path ? BASE + mediaOptions.path : URL));
     for (const frame of page.frames()) {
       await frame.evaluate(() => document.querySelectorAll('video,audio').forEach(window.mockMedia));
     }
@@ -586,7 +588,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     assert.equal(await page.locator('#cx-video-helper-host #autoAnswer').isVisible(), true);
     assert.equal(await page.locator('#cx-video-helper-host #speed').isVisible(), false);
     await page.locator('#cx-video-helper-host #tab-sources').click();
-    await page.locator('#cx-video-helper-host #externalSettings summary').click();
+    await page.locator('#cx-video-helper-host #presetProvider').selectOption('ocs');
     assert.equal(await page.locator('#cx-video-helper-host #externalInfo').isVisible(), true);
     await page.screenshot({ path: path.join(__dirname, '..', 'test-results', 'tabs-sources.png') });
     await page.locator('#cx-video-helper-host #tab-playback').click();
@@ -854,7 +856,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     assert.equal(await page.evaluate(key => window.testStore[key].apiKey, STORE), 'replacement-secret');
     await ui.locator('#clearApiKey').click();
     assert.equal(await page.evaluate(key => window.testStore[key].apiKey, STORE), '');
-    await ui.locator('#externalSettings summary').click();
+    await ui.locator('#presetProvider').selectOption('ocs');
     const banks = [{ name: '题库', url: 'https://bank.example/search', headers: { Authorization: 'bank-panel-secret' } }];
     await ui.locator('#externalInput').fill(JSON.stringify(banks));
     await ui.locator('#saveExternal').click();
@@ -866,7 +868,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     assert.deepEqual(await page.evaluate(key => window.testStore[key].externalBanks, STORE), banks.map(item=>({...item,method:'POST'})));
     await ui.locator('#clearExternal').click();
     assert.deepEqual(await page.evaluate(key => window.testStore[key].externalBanks, STORE), []);
-    await ui.locator('#externalSettings summary').click();
+    await ui.locator('#presetProvider').selectOption('ocs');
     await ui.locator('#apiSettings').scrollIntoViewIfNeeded();
     await ui.screenshot({ path: path.join(__dirname, '..', 'test-results', 'course-api-settings.png'), animations: 'disabled' });
     assert.equal(await page.evaluate(() => window.promptCalls.length), 0);
@@ -887,7 +889,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     const third = await setup(choice(1, '缓存测试', ['乙', '甲']), { ...aiSettings, answerCache: true }, [], {}, {}, { cache });
     await checked(third.page, 'input[value="B"]');
     assert.equal(await third.page.evaluate(() => window.aiRequests.length), 1);
-    await second.page.locator('#cx-video-helper-host #cacheSettings summary').click();
+    await second.page.locator('#cx-video-helper-host #bank-tab-cache').click();
     await second.page.locator('#cx-video-helper-host #clearCache').click();
     assert.deepEqual(await second.page.evaluate(() => window.testStore['cxHelper.answers.v1']), []);
   });
@@ -951,7 +953,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     const { page } = await setup(choice(1, '题库失败回退', ['甲', '乙']), { ...aiSettings, externalBanks: [{ name: '失败题库', url: 'https://bank.example/fail' }] }, [], { external: { '/fail': { status: 500 } } });
     await checked(page, 'input[value="B"]');
     assert.equal(await page.evaluate(() => window.aiRequests.length), 2);
-    await page.locator('#cx-video-helper-host #externalSettings summary').click();
+    await page.locator('#cx-video-helper-host #presetProvider').selectOption('ocs');
     await menu(page, '配置外部题库', '[{"name":"错误","url":"javascript:alert(1)"}]');
     await logContains(page, '题库配置未保存');
     assert.equal(await page.evaluate((key) => window.testStore[key].externalBanks[0].name, STORE), '失败题库');
@@ -1092,7 +1094,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     assert.equal(await manual.page.locator('.TiMu input:checked').count(), 1);
     assert.equal(await manual.page.evaluate(() => window.aiRequests.length), 0);
   });
-  await test('考试旧配置开启提交仍必须手动交卷', async () => {
+  await test('考试题量未知时即使开启交卷仍等待人工核对', async () => {
     const body = `<input name="examId" value="1">${choice(1, '完整考试', ['甲', '乙'])}<button id="submitExam" onclick="window.examSubmits=(window.examSubmits||0)+1">提交</button>`;
     const { page } = await setup(body, { ...aiSettings, examEnabled: true, examSubmit: true, autoSubmit: true }, [], {}, {}, { path: '/exam-ans/exam/test/reVersionTestStartNew' });
     await logContains(page, '已填写（AI）');
@@ -1427,15 +1429,15 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
       await context.close();
     }
   });
-  await test('考试整卷预览必须手动交卷，旧配置和章节自动提交均不能触发确认', async () => {
-    const body = '<input name="examId" value="1"><input name="questionId" value="1"><input id="answer1" value="A">'
+  await test('考试整卷预览缺少核对记录时不能触发交卷确认', async () => {
+    const body = '<input name="examId" value="1"><input name="questionId" value="1"><input id="answer1" value="A"><div class="question-pagination" data-total-pages="2"></div>'
       + choice(1, '预览已有答案', ['甲', '乙'])
       + '<button onclick="window.submits=(window.submits||0)+1">交卷</button><div role="dialog">确认交卷？<button onclick="window.confirms=(window.confirms||0)+1">确定</button></div>';
     const { page } = await setup(body, { ...aiSettings, examEnabled: true, examSubmit: true, autoSubmit: true, overwriteAnswers: true }, [], {}, {}, { path: '/exam-ans/mooc2/exam/preview' });
     await logContains(page, '手动交卷');
     await page.waitForTimeout(1800);
-    assert.deepEqual(await page.evaluate(() => [window.submits || 0, window.confirms || 0, window.aiRequests.length]), [0, 0, 0]);
-    assert.equal(await page.locator('#cx-video-helper-host #examSubmit').count(), 0);
+    assert.deepEqual(await page.evaluate(() => [window.submits || 0, window.confirms || 0]), [0, 0]);
+    assert.equal(await page.locator('#cx-video-helper-host #examSubmit').count(), 1);
   });
   await test('考试提交关闭时不点击末题下一步、交卷和无关确认框', async () => {
     const body = `<input name="examId" value="1">${choice(85, '关闭交卷', ['甲', '乙'])}<button onclick="window.steps=(window.steps||0)+1">下一步</button><button onclick="window.submits=(window.submits||0)+1">交卷</button><div role="dialog">确认退出考试？<button onclick="window.confirms=(window.confirms||0)+1">确定</button></div>`;
@@ -2008,6 +2010,10 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
   await require('./fixtures/advanced-tasks.cjs')({test,setup,choice,blank,checked,logContains,aiSettings,assert});
   await require('./fixtures/stability.cjs')({test,setup,choice,checked,logContains,aiSettings,assert});
   await require('./fixtures/scriptcat-fixes.cjs')({test,setup,choice,checked,logContains,aiSettings,assert});
+  await require('./fixtures/extended-features.cjs')({test,setup,choice,checked,logContains,aiSettings,assert});
+  await require('./fixtures/abc-audit.cjs')({test,setup,choice,checked,logContains,aiSettings,assert});
+  await require('./fixtures/learning-tools.cjs')({test,setup,choice,checked,logContains,aiSettings,assert});
+  await require('./fixtures/course-queue.cjs')({test,setup,assert});
   await browser.close();
   fs.mkdirSync(path.join(__dirname, '..', 'test-results'), { recursive: true });
   const reportName = process.env.CX_TEST_SHARD ? `report-shard-${process.env.CX_TEST_SHARD.replace('/', '-')}.json`

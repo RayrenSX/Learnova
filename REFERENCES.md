@@ -1,6 +1,14 @@
 # 参考项目与采用方式
 
-研究日期：2026-10-09。当前两份安装文件均为同一独立实现。用户要求只参考功能而非照抄后，已移除 v3.0.x 原引擎。下文版本对照为历史调查记录，不代表当前代码。来源和许可范围见 THIRD_PARTY_NOTICES.md。
+2026-10-26 资料工具：核对已保存的 4930、5777/5242、5838、5907、6071、6589、4835，以及原 Easy/OCS 和 4183/2827 等的接口、题目和编辑器结构。逐项采用方式、源码快照位置与实测边界见 [资料工具实现记录](docs/STUDY_TOOLS.md)。新模块独立实现，现有 OCS MIT 适配与第三方声明继续保留。
+
+2026-10-25 v3.9.1：用户允许直接复用其他脚本逻辑。`src/platform-tasks.cjs` 改编研究快照 [OCS cx.ts searchJob](https://github.com/ocsjs/ocsjs/blob/8b25a3f44523a0d4b7373878488056f4aa478cf6/packages/scripts/src/projects/cx.ts#L1610) 的 iframe data/jobid/attachments 匹配，保留 MIT 版权与完整许可；CodeMirror 6 模型读取直接共用本项目 Pintia 的成熟实现。旧版本关于不复制业务逻辑的记录只描述其当时范围。当前交付证据见 [稳定性报告](research/2026-10-25/stability-v3.9.1/REPORT.md)。
+
+2026-10-25 P1/P2 接入：继续核对研究库的 OCS 请求/字段环境、StarCourse 独立直播与 BBS 任务、GoodSign 签到类别及此前真实 CodeMirror/讨论页面结构。当前新增模块独立编写；可执行 OCS handler 仅作为用户配置在限时隔离环境处理数据。流程、测试与现场验证边界见 [接入报告](research/2026-10-25/p1p2-integration/REPORT.md)。
+
+2026-10-23课后作业接入：静态核对OCS的`.questionLi/.mark_name/.answerBg`、Easy作业暂存与提交、公开Python项目的`li[data]`列表及`totalQuestionNum`字段，以及aiask对“暂时保存”的独立识别。新增`src/homework.cjs`为独立页面适配，不复制第三方业务引擎、不运行配置函数。精确来源定位、验证和边界见 [课后作业接入报告](research/2026-10-23/homework-integration/REPORT.md)。
+
+研究日期：2026-10-09。两份安装文件均由同一构建生成。此前按用户只参考功能的要求移除了 v3.0.x 原引擎；v3.9.1 的复用范围以本页开头和 THIRD_PARTY_NOTICES.md 为准。下文版本对照为历史调查记录，不代表当前代码。
 
 | 来源 | 实际查看内容 | 本项目采用的思路 |
 | --- | --- | --- |

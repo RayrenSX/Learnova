@@ -1,0 +1,125 @@
+{
+  "version": "3.8.0",
+  "sha256": "c230ca1b80e979c30be3656a5cd0e00d3802f7e3ecd76ecfc11ba301a850e21b",
+  "checks": {
+    "full": {
+      "status": "passed",
+      "passed": 186,
+      "total": 186,
+      "scriptSha256": "c230ca1b80e979c30be3656a5cd0e00d3802f7e3ecd76ecfc11ba301a850e21b",
+      "report": "test-results/report.json"
+    },
+    "homework": {
+      "status": "passed",
+      "passed": 13,
+      "total": 13,
+      "scriptSha256": "c230ca1b80e979c30be3656a5cd0e00d3802f7e3ecd76ecfc11ba301a850e21b",
+      "report": "test-results/report-filtered.json"
+    },
+    "pintia": {
+      "status": "passed",
+      "passed": 66,
+      "total": 66,
+      "scriptSha256": "c230ca1b80e979c30be3656a5cd0e00d3802f7e3ecd76ecfc11ba301a850e21b",
+      "report": "pintia/test-results/report.json"
+    }
+  },
+  "references": [
+    {
+      "label": "作业路由分类",
+      "file": "src/homework.cjs",
+      "line": 5,
+      "needle": "function kind(doc)"
+    },
+    {
+      "label": "只读识别",
+      "file": "src/homework.cjs",
+      "line": 23,
+      "needle": "function readonly(doc, visible)"
+    },
+    {
+      "label": "作业身份",
+      "file": "src/homework.cjs",
+      "line": 15,
+      "needle": "function identity(doc)"
+    },
+    {
+      "label": "页面作业列表",
+      "file": "src/homework.cjs",
+      "line": 92,
+      "needle": "function listEntries(doc, visible)"
+    },
+    {
+      "label": "整份题目范围",
+      "file": "src/homework.cjs",
+      "line": 47,
+      "needle": "function manifest(doc)"
+    },
+    {
+      "label": "唯一原生按钮识别",
+      "file": "src/homework.cjs",
+      "line": 64,
+      "needle": "function control(doc, action, usable)"
+    },
+    {
+      "label": "已核对题号与分页台账",
+      "file": "src/chaoxing.js",
+      "line": 1320,
+      "needle": "function homeworkPage(doc, session)"
+    },
+    {
+      "label": "暂存与新反馈确认",
+      "file": "src/chaoxing.js",
+      "line": 1346,
+      "needle": "function homeworkSave(doc, session, page)"
+    },
+    {
+      "label": "作业执行状态",
+      "file": "src/chaoxing.js",
+      "line": 1375,
+      "needle": "function processHomework(doc)"
+    },
+    {
+      "label": "助手作业入口",
+      "file": "src/chaoxing.js",
+      "line": 2725,
+      "needle": "function buildHomeworkPanel(shadow)"
+    },
+    {
+      "label": "隔离作业回归",
+      "file": "tests/fixtures/homework.cjs",
+      "line": 1,
+      "needle": "module.exports = async"
+    },
+    {
+      "label": "OCS独立作业适配",
+      "file": "research/2026-10-23/repositories/ocsjs__ocsjs/packages/scripts/src/projects/cx.ts",
+      "line": 874,
+      "needle": "root: '.questionLi'"
+    },
+    {
+      "label": "Easy作业暂存及提交",
+      "file": "research/2026-10-23/greasyfork/552437.user.js",
+      "line": 5131,
+      "needle": "savingHomework:"
+    },
+    {
+      "label": "公开Python项目的列表解析",
+      "file": "research/2026-10-23/repositories/aglorice__new_xxt/my_xxt/api.py",
+      "line": 259,
+      "needle": "work_li_list = work_li_list_soup.find_all"
+    },
+    {
+      "label": "公开aiask脚本中的独立暂存识别",
+      "file": "research/2026-10-23/repositories/aiaskhelper__aiask-dist/aiask.user.js",
+      "line": 4583,
+      "needle": "function safeDoworkSaveTarget("
+    }
+  ],
+  "sourceHashes": {
+    "src/homework.cjs": "34d17b30bfb5843ab156d552d5168f84d478e1cb07c113a16e1f3d2898f2cb9f",
+    "src/chaoxing.js": "22a607a3794bba6dd4617af4e7df9e7ba4adb11bbed0419718c767350d3a36bc",
+    "tools/build-full.cjs": "2a3ae1ac6bb17615ae8186e604770e4e62a99d713f5d91515365d96498113248",
+    "tests/fixtures/homework.cjs": "4bfc74a643d5fe5d913af6639f972e5df9910335c278324125d1618de5548d84"
+  }
+}

@@ -39,6 +39,7 @@ const {editorSplitter} = require('./splitter.cjs');
   let mirrorText = '';
   let syncFailed = false;
   let syncPending = 0;
+  let workspaceOwnsCode = false;
   let testInputDirty = false;
   let compilerSignature='';
   const compilerLabels={GCC:'C (gcc)',GXX:'C++ (g++)',CLANG:'C (clang)',CLANGXX:'C++ (clang++)',JAVAC:'Java',PYTHON2:'Python 2',PYTHON3:'Python 3',PYPY3:'Python 3 (PyPy)',GO:'Go',RUST:'Rust',NODE:'JavaScript (Node)',MCS:'C#',FPC:'Pascal',GHC:'Haskell',RLANG:'R',CAT:'文本',CLISP:'Lisp',OCAMLC:'OCaml',VBNC:'VB.NET',RKT:'Racket'};
@@ -58,7 +59,7 @@ const {editorSplitter} = require('./splitter.cjs');
       const route = adapter.route();
       const target = adapter.editor();
       if (route.key !== mirrorRoute || target.element !== mirror?.element || target.read() !== mirrorText) throw new Error('平台代码已变化，请核对后同步');
-      target.write(code); mirrorText = code; syncPending = Date.now();
+      target.write(code); mirrorText = code; syncPending = Date.now(); workspaceOwnsCode = true;
       syncFailed = false; $('editor-sync').textContent = '同步中…'; $('sync-now').hidden = true;
     } catch (error) {
       syncFailed = true; $('editor-sync').textContent = '待同步'; $('sync-now').hidden = false; status(error.message, true);
@@ -146,14 +147,14 @@ const {editorSplitter} = require('./splitter.cjs');
       const text=target.read();
       const isNew=mirrorRoute!==route.key || mirror?.element!==target.element;
       if (isNew) {
-        if(mirrorRoute===route.key&&mirror&&(syncFailed||syncPending)&&text!==workspaceEditor.read()){
+        if(mirrorRoute===route.key&&mirror&&(syncFailed||syncPending||workspaceOwnsCode)&&text!==workspaceEditor.read()){
           mirror=target;mirrorText=text;syncFailed=true;syncPending=0;$('editor-sync').textContent='待同步';$('sync-now').hidden=false;controls();return;
         }
-        mirror=target;mirrorRoute=route.key;mirrorText=text;syncFailed=false;syncPending=0;
+        mirror=target;mirrorRoute=route.key;mirrorText=text;syncFailed=false;syncPending=0;workspaceOwnsCode=false;
         workspaceEditor.replace(text,true);
         $('test-input').value=adapter.testInput();testInputDirty=false;
       } else if (!syncFailed) {
-        if (syncPending && text !== workspaceEditor.read()) {
+        if ((syncPending || workspaceOwnsCode) && text !== workspaceEditor.read()) {
           if (Date.now()-syncPending<350) return;
           syncFailed=true; $('editor-sync').textContent='平台同步失败';$('sync-now').hidden=false;
           status('平台未保留最新代码，请核对后点击“同步到平台”。',true);controls();return;
@@ -185,6 +186,11 @@ const {editorSplitter} = require('./splitter.cjs');
   function ensureSynced() {
     if (syncFailed || adapter.editor().read()!==workspaceEditor.read()) throw new Error('助手代码尚未同步到平台，请先同步后再测试');
   }
+  // A deliberate edit in the original editor transfers control back to it.
+  // A delayed framework restore must not erase code authored in the workspace.
+  document.addEventListener('beforeinput',event=>{
+    if(event.isTrusted&&mirror?.element?.contains(event.target))workspaceOwnsCode=false;
+  },true);
   function cancel(reason) {
     epoch++;
     controller?.abort();
@@ -537,4 +543,5 @@ const {editorSplitter} = require('./splitter.cjs');
   }, 500);
   try {lastRoute = adapter.route().key;} catch {}
   configured();syncEditor();docking.refresh();controls();syncDetected();refresh();
+  require('./study-export.cjs').mountExports({root,page,adapter,status});
 })();

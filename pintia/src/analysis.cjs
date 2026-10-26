@@ -55,9 +55,11 @@ function requestAI(config, snapshot, mode, signal, request = globalThis.GM_xmlht
       done = true;
       clearTimeout(timer);
       signal.removeEventListener('abort', abort);
+      try {require('../../src/study-tools.cjs').recordUsage({get:(key,fallback)=>globalThis.GM_getValue?.(key,fallback)??fallback,set:(key,value)=>globalThis.GM_setValue?.(key,value)},'Pintia AI',config.apiModel,lastUsage,Boolean(error));} catch {}
       error ? reject(error) : resolve(value);
     };
     const abort = () => {finish(new Error('分析已取消')); try { handle?.abort(); } catch {} };
+    let lastUsage;
     const timer = setTimeout(() => {finish(new Error('AI 请求超时，请重试')); try { handle?.abort(); } catch {} }, 180000);
     signal.addEventListener('abort', abort, {once: true});
     if (signal.aborted) {abort(); return;}
@@ -69,7 +71,8 @@ function requestAI(config, snapshot, mode, signal, request = globalThis.GM_xmlht
           try {
             if (response.finalUrl && new URL(response.finalUrl).origin !== new URL(url).origin) {finish(new Error('AI 响应跳转到其他域名，未采用')); return;}
             if (response.status < 200 || response.status >= 300) {finish(new Error(`AI 接口返回 HTTP ${response.status}`)); return;}
-            finish(null, parseResponse(JSON.parse(response.responseText)));
+            const raw=JSON.parse(response.responseText);lastUsage=raw.usage;
+            finish(null, parseResponse(raw));
           }
           catch (error) {finish(new Error(error instanceof SyntaxError ? 'AI 接口响应不是 JSON' : error.message));}
         }, ontimeout: () => finish(new Error('AI 请求超时，请重试')),

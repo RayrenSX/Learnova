@@ -1,0 +1,291 @@
+{
+  "version": "3.7.1",
+  "scriptSha256": "5bf03ee404c9a3957a86e2245f8c64d8caee83b2ebae59fae66bb7379d134403",
+  "sourceSha256": "3cece55b48300d823d656ef57440498d886af1cbf4e7252cc798610f72586a91",
+  "fixed": [
+    {
+      "id": "A01",
+      "status": "已修复",
+      "result": "无效本地项/缓存继续尝试后续来源；有效答案冲突明确停止，避免落入随机。"
+    },
+    {
+      "id": "A02",
+      "status": "已修复",
+      "result": "按配置优先级尽早选用可用题库并取消更后来源；最多两题查询重叠，填写仍按创建顺序。"
+    },
+    {
+      "id": "A03",
+      "status": "已修复",
+      "result": "隐藏类型码4保留简答语义，其他长文本不误用填空的低信心豁免。"
+    },
+    {
+      "id": "A04",
+      "status": "已修复",
+      "result": "增加可见人脸遮罩、相关iframe和常见识别/认证文案检测；用户仍需人工完成验证。"
+    },
+    {
+      "id": "A05",
+      "status": "已修复",
+      "result": "辅助document变化不再重置全局；旧题目document移除/隐藏时只取消所属查询。"
+    },
+    {
+      "id": "A06",
+      "status": "已修复",
+      "result": "提交区分requested、awaiting_ack、acknowledged、rejected、unknown；未知状态不自动重复提交，显式重试可恢复。"
+    },
+    {
+      "id": "A07",
+      "status": "已修复",
+      "result": "导航15秒仍未生效时提示未确认，手动重试释放本次导航记录，不静默卡在“运行中”。"
+    },
+    {
+      "id": "A08",
+      "status": "已修复",
+      "result": "AI/题库配置和密钥改变时递增配置revision并中止旧请求；过期结果不得写入。"
+    },
+    {
+      "id": "A09",
+      "status": "已修复",
+      "result": "新缓存包含schema、来源配置摘要、时间；最多复用30天，旧schema/过期/换来源结果不自动采用。"
+    },
+    {
+      "id": "A10",
+      "status": "已修复",
+      "result": "编辑器回读保留词间空格和换行，兼容浏览器换行/NBSP/零宽字符。"
+    },
+    {
+      "id": "A11",
+      "status": "已修复",
+      "result": "单选字母标签先NFKC规范化，全角Ｂ可以按标签匹配；仍校验字母与文本一致。"
+    },
+    {
+      "id": "A12",
+      "status": "已修复",
+      "result": "私用区及汉字扩展区参与字形校验，未知私用字形不再宣称完整；真实TTF夹具验证。"
+    },
+    {
+      "id": "A13",
+      "status": "已修复",
+      "result": "提交使用已加载必答题全集，包含隐藏题；过滤模板，识别到分页/总题量不完整时停止自动提交。"
+    },
+    {
+      "id": "B01",
+      "status": "继续研究时发现并修复",
+      "result": "清理题号不再误删3.14或1.5的数字前缀。"
+    },
+    {
+      "id": "B02",
+      "status": "继续研究时发现并修复",
+      "result": "persisted pagehide/pageshow按缓存暂停/恢复；目录观察器不被永久销毁，原本暂停的用户状态不自动开启。"
+    }
+  ],
+  "checks": {
+    "full": {
+      "status": "passed",
+      "path": "test-results\\report.json",
+      "scriptSha256": "5bf03ee404c9a3957a86e2245f8c64d8caee83b2ebae59fae66bb7379d134403",
+      "same_script": true,
+      "passed": 173,
+      "total": 173
+    },
+    "audit": {
+      "status": "passed",
+      "path": "test-results\\report-filtered.json",
+      "scriptSha256": "5bf03ee404c9a3957a86e2245f8c64d8caee83b2ebae59fae66bb7379d134403",
+      "same_script": true,
+      "passed": 17,
+      "total": 17
+    },
+    "pintia_combined": {
+      "status": "passed",
+      "path": "pintia\\test-results\\report.json",
+      "scriptSha256": "5bf03ee404c9a3957a86e2245f8c64d8caee83b2ebae59fae66bb7379d134403",
+      "same_script": true,
+      "passed": 66,
+      "total": 66
+    }
+  },
+  "references": [
+    {
+      "label": "必答题范围与分页检查",
+      "path": "src/chaoxing.js",
+      "line": 651,
+      "needle": "function requiredQuestionRoots(doc)"
+    },
+    {
+      "label": "提交确认状态",
+      "path": "src/chaoxing.js",
+      "line": 1232,
+      "needle": "function processSubmission(doc, roots)"
+    },
+    {
+      "label": "人工验证检测",
+      "path": "src/chaoxing.js",
+      "line": 1329,
+      "needle": "function verificationPage(docs)"
+    },
+    {
+      "label": "语义题型",
+      "path": "src/chaoxing.js",
+      "line": 752,
+      "needle": "if (typeCode === '4') type = 'essay'"
+    },
+    {
+      "label": "来源有效性与回退",
+      "path": "src/chaoxing.js",
+      "line": 252,
+      "needle": "async function findAnswer(q, signal)"
+    },
+    {
+      "label": "题库保序返回",
+      "path": "src/chaoxing.js",
+      "line": 220,
+      "needle": "function orderedBankAnswer("
+    },
+    {
+      "label": "并发查询与顺序填写",
+      "path": "src/chaoxing.js",
+      "line": 1153,
+      "needle": "const previousFill = state.fillQueue"
+    },
+    {
+      "label": "配置失效处理",
+      "path": "src/chaoxing.js",
+      "line": 548,
+      "needle": "function invalidateAnswers()"
+    },
+    {
+      "label": "章节及卡片身份",
+      "path": "src/chaoxing.js",
+      "line": 542,
+      "needle": "function signature(docs)"
+    },
+    {
+      "label": "局部查询清理",
+      "path": "src/chaoxing.js",
+      "line": 557,
+      "needle": "function pruneAnswerTasks(docs)"
+    },
+    {
+      "label": "导航请求确认",
+      "path": "src/chaoxing.js",
+      "line": 1420,
+      "needle": "function scheduleNext(scanResult)"
+    },
+    {
+      "label": "人工重试恢复",
+      "path": "src/chaoxing.js",
+      "line": 1816,
+      "needle": "function retry()"
+    },
+    {
+      "label": "缓存版本与期限",
+      "path": "src/chaoxing.js",
+      "line": 157,
+      "needle": "function currentCache(item)"
+    },
+    {
+      "label": "文本回读校验",
+      "path": "src/chaoxing.js",
+      "line": 712,
+      "needle": "function editorMatches(editor, text)"
+    },
+    {
+      "label": "全角标签规范化",
+      "path": "src/chaoxing.js",
+      "line": 1008,
+      "needle": "answer = String(answer).normalize('NFKC').trim()"
+    },
+    {
+      "label": "私用区与汉字字体检查",
+      "path": "tools/font-codec.cjs",
+      "line": 28,
+      "needle": "const privateUse ="
+    },
+    {
+      "label": "小数题干保护",
+      "path": "src/chaoxing.js",
+      "line": 436,
+      "needle": "const cleanTitle ="
+    },
+    {
+      "label": "页面缓存恢复",
+      "path": "src/chaoxing.js",
+      "line": 2771,
+      "needle": "let resumeFromCache = false"
+    },
+    {
+      "label": "构建输入为独立源码",
+      "path": "tools/build-full.cjs",
+      "line": 23,
+      "needle": "source = fs.readFileSync(path.join(root, 'src/chaoxing.js')"
+    },
+    {
+      "label": "独立搜索预算",
+      "path": "tools/web-search.cjs",
+      "line": 41,
+      "needle": "if (unique.length > 4"
+    },
+    {
+      "label": "字体资源发现",
+      "path": "tools/font-codec.cjs",
+      "line": 7,
+      "needle": "function fontFor(doc)"
+    },
+    {
+      "label": "查询结果与输入快照检查",
+      "path": "src/chaoxing.js",
+      "line": 1191,
+      "needle": "if (snapshot(q) !== before) throw"
+    },
+    {
+      "label": "视频弹题排队",
+      "path": "src/chaoxing.js",
+      "line": 1725,
+      "needle": "if (q.popup) nextQuestions.unshift"
+    },
+    {
+      "label": "查询并发上限",
+      "path": "src/chaoxing.js",
+      "line": 1772,
+      "needle": "state.answerTasks.size < 2"
+    },
+    {
+      "label": "图片加载等待",
+      "path": "src/chaoxing.js",
+      "line": 312,
+      "needle": "await Promise.race([img.decode()"
+    }
+  ],
+  "remaining": [
+    {
+      "id": "B03",
+      "evidence": "offline-reproduced",
+      "priority": "P3"
+    },
+    {
+      "id": "B04",
+      "evidence": "scope-boundary",
+      "priority": "P2"
+    },
+    {
+      "id": "B05",
+      "evidence": "source-capability-limit",
+      "priority": "P3"
+    },
+    {
+      "id": "B06",
+      "evidence": "source-observation-needs-runtime-reproduction",
+      "priority": "P2"
+    },
+    {
+      "id": "B07",
+      "evidence": "source-observation-needs-runtime-reproduction",
+      "priority": "P2"
+    },
+    {
+      "id": "B08",
+      "evidence": "measurement-proposal"
+    }
+  ]
+}

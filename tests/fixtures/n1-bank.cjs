@@ -57,7 +57,7 @@ module.exports = async ({ test, setup, choice, blank, aiSettings, checked, logCo
   });
   await test('N1题库：OCS小写post题干占位符和已知handler安全导入，不执行任意函数', async () => {
     const { page } = await setup('', { uiTab: 'sources' });
-    const ui = page.locator('#cx-video-helper-host'); await ui.locator('#externalSettings summary').click();
+    const ui = page.locator('#cx-video-helper-host'); await ui.locator('#presetProvider').selectOption('ocs');
     const ocs = [{ name: 'OCS N1', url: 'http://tk.n1t.cn/api/search.php', method: 'post', type: 'GM_xmlhttpRequest', data: { question: '${title}', key: 'import-private-key' },
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: '' }, handler: 'return (res)=> res.code === 1 ? [undefined, res.data] : undefined' }];
     await ui.locator('#externalInput').fill(JSON.stringify(ocs)); await ui.locator('#saveExternal').click();
@@ -74,12 +74,13 @@ module.exports = async ({ test, setup, choice, blank, aiSettings, checked, logCo
   await test('N1题库：密钥UI保存保留其他题库，连接测试校验成功及剩余配额', async () => {
     const old = { name: '旧题库', url: 'https://bank.example/old' };
     const { page } = await setup('', { uiTab: 'sources', externalBanks: [old], autoAnswer: false }, [], external({ code: 1, data: '钠盐食入过多', quota_info: { remaining: 7 } }));
-    const ui = page.locator('#cx-video-helper-host'); await ui.locator('#externalSettings summary').click();
-    await ui.locator('#n1KeyInput').fill('ui-n1-secret'); await ui.locator('#saveN1').click();
-    assert.equal(await ui.locator('#n1KeyInput').inputValue(), '');
+    const ui = page.locator('#cx-video-helper-host');
+    await ui.locator('#presetProvider').selectOption('n1');
+    await ui.locator('#presetKey').fill('ui-n1-secret'); await ui.locator('#presetSave').click();
+    assert.equal(await ui.locator('#presetKey').inputValue(), '');
     assert.equal(await page.evaluate(() => window.testStore['cxVideoHelper.settings.v1'].externalBanks.length), 2);
-    await ui.locator('#testN1').click();
-    await page.waitForFunction(() => document.querySelector('#cx-video-helper-host').shadowRoot.getElementById('n1Feedback').textContent.includes('剩余次数 7'));
+    await ui.locator('#presetTest').click();
+    await page.waitForFunction(() => document.querySelector('#cx-video-helper-host').shadowRoot.getElementById('presetStatus').textContent.includes('剩余次数 7'));
     assert.equal(await page.evaluate(() => window.aiRequests.length), 1);
     assert.ok(!await page.evaluate(() => document.querySelector('#cx-video-helper-host').shadowRoot.innerHTML.includes('ui-n1-secret')));
   });
