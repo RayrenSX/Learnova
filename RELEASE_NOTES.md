@@ -1,3 +1,7 @@
+Learnova 0.1.6
+
+- Use the 1024×1024 icon source for both `@icon` and `@icon64`. Script-site thumbnails may still be limited by the hosting platform's fixed image size.
+
 Learnova 0.1.5
 
 - Add the blue book / play icon to Chaoxing and Pintia headers and userscript metadata.

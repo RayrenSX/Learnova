@@ -1,14 +1,15 @@
 // ==UserScript==
 // @name         Learnova
 // @namespace    local.xuexitong.helper
-// @version      0.1.5
+// @version      0.1.6
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @updateURL    https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.meta.js
 // @downloadURL  https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.user.js
 // @description  学习通课程、题库与资料工具；Pintia 代码工作台；智慧树、智慧职教、MOOC 的播放、题目辅助与导出。按网站自动加载。
 // @author       Ray
-// @icon         https://raw.githubusercontent.com/RayrenSX/Learnova/main/assets/learnova-icon-256.png
+// @icon         https://raw.githubusercontent.com/RayrenSX/Learnova/main/assets/learnova-icon.png
+// @icon64       https://raw.githubusercontent.com/RayrenSX/Learnova/main/assets/learnova-icon.png
 // @license      MIT
 // @match        *://*.chaoxing.com/*
 // @match        *://*.sslibrary.com/readsvr/book/mooc*

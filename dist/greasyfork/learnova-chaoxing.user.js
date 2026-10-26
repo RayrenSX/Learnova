@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Learnova for Chaoxing
 // @namespace    local.xuexitong.helper
-// @version      0.1.5
+// @version      0.1.6
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @description  学习通课程目录、视频音频播放、阅读、题库与可配置 AI 辅助。
 // @author       Ray
-// @icon         https://raw.githubusercontent.com/RayrenSX/Learnova/main/assets/learnova-icon-256.png
+// @icon         https://raw.githubusercontent.com/RayrenSX/Learnova/main/assets/learnova-icon.png
+// @icon64       https://raw.githubusercontent.com/RayrenSX/Learnova/main/assets/learnova-icon.png
 // @license      MIT
 // @match        *://*.chaoxing.com/*
 // @match        *://*.sslibrary.com/readsvr/book/mooc*
@@ -39,7 +40,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.5",
+        version: "0.1.6",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
