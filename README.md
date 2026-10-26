@@ -4,6 +4,8 @@ Learnova is a course learning companion for Chaoxing and Pintia.
 
 [Install Learnova](https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.user.js) · [Pintia only](https://github.com/RayrenSX/Learnova/releases/latest/download/pintia-helper.user.js) · [Releases](https://github.com/RayrenSX/Learnova/releases)
 
+[ScriptCat](https://scriptcat.org/zh-CN/script-show-page/8739)
+
 当前统一版本为 **0.1.2**。两个站点的面板标题栏均显示版本号，点击版本号或用户脚本菜单中的“检查 Learnova 更新”可手动检查。启动时每六小时至多检查一次，发现新版后显示安装提示，同一新版只发送一次桌面通知。
 
 从旧 3.x / 1.x 版本迁移：由于名称变更且版本重置，首次请手动安装，并停用旧脚本，避免同时运行。合并版与 Pintia 独立版也应二选一。后续发布递增版本后，脚本管理器通过固定的 `.meta.js` 和 `.user.js` 地址更新。

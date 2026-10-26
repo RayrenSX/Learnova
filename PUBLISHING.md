@@ -16,6 +16,12 @@ Stable installation and metadata URLs:
 
 ## Greasy Fork and ScriptCat
 
+ScriptCat combined-edition listing (0.1.2): https://scriptcat.org/zh-CN/script-show-page/8739
+
+ScriptCat install URL: https://scriptcat.org/scripts/code/8739/Learnova.user.js
+
+The initial ScriptCat version has been uploaded. Automatic site synchronization has not yet been configured; the script metadata points installed clients to the GitHub release assets. Greasy Fork publication is pending the account security setup required by its new-author page (verified email plus 2FA, or external-login-only setup).
+
 Publish the combined `dist/study-helper.user.js` as Learnova. The optional Pintia-only edition is `dist/pintia-helper.user.js`, named Learnova for Pintia. The license is MIT; source and issue links are https://github.com/RayrenSX/Learnova.
 
 For the first publication, sign in to each site and create the listing. Use the description below. If the editor offers URL import and automatic synchronization, set the combined .user.js URL above as its source. Use the Pintia URL for the independent edition. Confirm site validation and synchronization results before treating the listing as live. Record the resulting listing URLs here after publication. A GitHub release does not create or synchronize a listing by itself.
