@@ -1,6 +1,6 @@
 # Publishing Learnova
 
-All editions currently use **0.1.4**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+All editions currently use **0.1.5**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
 
 ## 0.1.4 publication status (2026-10-26)
 

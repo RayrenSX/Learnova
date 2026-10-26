@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  // BRAND_ICON
   // FONT_CODEC_BEGIN
 // Bundled by tools/build-full.cjs.
 // FONT_CODEC_END
@@ -2327,7 +2328,7 @@
       .warn{color:#9a6700}.error{color:#bb2626}.success{color:#16803e}.log-head{display:flex;align-items:center;gap:6px;margin:10px 0 6px}.log-head strong{flex:1}#bankInfo{font-size:11px;color:#758299}main[hidden]{display:none}
       </style>
       <section class="panel">
-        <header id="drag"><span class="brand-mark" aria-hidden="true">学</span><div class="brand"><strong>Learnova</strong><span>课程工作台</span></div><button class="small" id="nativeCatalog" hidden title="查看原目录、讨论和笔记">原目录</button><button class="small" id="dockToggle" hidden title="切换为浮动窗口" aria-label="切换为浮动窗口">↗</button><button class="small" id="collapse" title="收起窗口" aria-label="收起窗口" aria-controls="body" aria-expanded="true">−</button></header>
+        <header id="drag"><span class="brand-mark" aria-hidden="true">${LEARNOVA_ICON}</span><div class="brand"><strong>Learnova</strong><span>课程工作台</span></div><button class="small" id="nativeCatalog" hidden title="查看原目录、讨论和笔记">原目录</button><button class="small" id="dockToggle" hidden title="切换为浮动窗口" aria-label="切换为浮动窗口">↗</button><button class="small" id="collapse" title="收起窗口" aria-label="收起窗口" aria-controls="body" aria-expanded="true">−</button></header>
         <main id="body">
           <div class="overview"><div class="overview-title"><span class="eyebrow">学习控制台</span><span id="modeBadge" class="badge">学习模式</span></div><div class="status" id="status" aria-live="polite">准备就绪</div><div class="metrics"><div><strong id="mediaCount">0</strong><span>媒体任务</span></div><div><strong id="answeredCount">0</strong><span>已填写</span></div><div><strong id="pendingCount">0</strong><span>待处理</span></div></div></div>
           <div class="command-bar"><div class="main-actions"><button class="primary" id="toggle">开始</button><button id="answerOnly">只答题，不播放视频</button></div><div class="utility-actions"><button id="retry">重试失败题</button><button id="next">下一章</button></div></div>
@@ -2657,7 +2658,7 @@
       :host{color:#243247;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
       .panel{width:400px;background:#f8fafc;border-color:#dce3ed;border-radius:12px;box-shadow:0 12px 36px #10254220}
       header{min-height:54px;padding:11px 14px;border-color:#e6ebf1;gap:8px;background:#fff}
-      .brand-mark{width:28px;height:28px;border-radius:7px;background:#315bd5;font-size:14px;box-shadow:none}.brand strong{font-size:14px;letter-spacing:0;color:#26354b}.brand>span{display:none}
+      .brand-mark{width:28px;height:28px;border-radius:7px;background:#315bd5;font-size:14px;box-shadow:none}.brand-mark svg{display:block;width:100%;height:100%}.brand strong{font-size:14px;letter-spacing:0;color:#26354b}.brand>span{display:none}
       header .small{font-size:11px;white-space:nowrap}#collapse{background:transparent;color:#6b778b}#dockToggle{font-size:16px;padding:2px 6px}#nativeCatalog{border:0;background:transparent;color:#748096;padding:4px}
       button{color:#43536b;border-color:#dce3ed;border-radius:7px;font-weight:500}button:hover{background:#f1f5fb;border-color:#bac9e4}button.primary{background:#315bd5;border-color:#315bd5;box-shadow:none}button.primary:hover{background:#264abd;border-color:#264abd}
       button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline-color:#6c91f0}

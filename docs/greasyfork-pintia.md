@@ -1,6 +1,8 @@
+![Learnova](https://raw.githubusercontent.com/RayrenSX/Learnova/main/assets/learnova-cover.png)
+
 # Learnova for Pintia
 
-Pintia 代码编辑、平台测试与 AI 分析工作台，当前版本 **0.1.4**。
+Pintia 代码编辑、平台测试与 AI 分析工作台，当前版本 **0.1.5**。
 
 ## 功能
 

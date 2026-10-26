@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         Learnova for Chaoxing
 // @namespace    local.xuexitong.helper
-// @version      0.1.4
+// @version      0.1.5
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @description  学习通课程目录、视频音频播放、阅读、题库与可配置 AI 辅助。
 // @author       Ray
+// @icon         https://raw.githubusercontent.com/RayrenSX/Learnova/main/assets/learnova-icon-256.png
 // @license      MIT
 // @match        *://*.chaoxing.com/*
 // @match        *://*.sslibrary.com/readsvr/book/mooc*
@@ -38,7 +39,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.4",
+        version: "0.1.5",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -226,6 +227,7 @@ var StudyHelperUpdate = (() => {
 // CHAOXING_MODULE_BEGIN
 (() => {
   'use strict';
+  const LEARNOVA_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1024\" height=\"1024\" viewBox=\"0 0 1024 1024\">\n  <title>Learnova</title>\n  <rect width=\"1024\" height=\"1024\" rx=\"224\" fill=\"#315BD5\"/>\n  <path d=\"M242 286c84-8 160 14 222 59v407c-62-45-138-67-222-59-19 2-34-12-34-30V320c0-18 15-32 34-34Z\" fill=\"#fff\"/>\n  <path d=\"M560 345c62-45 138-67 222-59 19 2 34 16 34 34v343c0 18-15 32-34 30-84-8-160 14-222 59V345Z\" fill=\"#fff\"/>\n  <path d=\"m621 434 135 78-135 78V434Z\" fill=\"#315BD5\"/>\n</svg>\n";
   // FONT_CODEC_BEGIN
 var CXFontCodec = (() => {
   var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -11020,7 +11022,7 @@ var CXOCSRuntime = (() => {
       .warn{color:#9a6700}.error{color:#bb2626}.success{color:#16803e}.log-head{display:flex;align-items:center;gap:6px;margin:10px 0 6px}.log-head strong{flex:1}#bankInfo{font-size:11px;color:#758299}main[hidden]{display:none}
       </style>
       <section class="panel">
-        <header id="drag"><span class="brand-mark" aria-hidden="true">学</span><div class="brand"><strong>Learnova</strong><span>课程工作台</span></div><button class="small" id="nativeCatalog" hidden title="查看原目录、讨论和笔记">原目录</button><button class="small" id="dockToggle" hidden title="切换为浮动窗口" aria-label="切换为浮动窗口">↗</button><button class="small" id="collapse" title="收起窗口" aria-label="收起窗口" aria-controls="body" aria-expanded="true">−</button></header>
+        <header id="drag"><span class="brand-mark" aria-hidden="true">${LEARNOVA_ICON}</span><div class="brand"><strong>Learnova</strong><span>课程工作台</span></div><button class="small" id="nativeCatalog" hidden title="查看原目录、讨论和笔记">原目录</button><button class="small" id="dockToggle" hidden title="切换为浮动窗口" aria-label="切换为浮动窗口">↗</button><button class="small" id="collapse" title="收起窗口" aria-label="收起窗口" aria-controls="body" aria-expanded="true">−</button></header>
         <main id="body">
           <div class="overview"><div class="overview-title"><span class="eyebrow">学习控制台</span><span id="modeBadge" class="badge">学习模式</span></div><div class="status" id="status" aria-live="polite">准备就绪</div><div class="metrics"><div><strong id="mediaCount">0</strong><span>媒体任务</span></div><div><strong id="answeredCount">0</strong><span>已填写</span></div><div><strong id="pendingCount">0</strong><span>待处理</span></div></div></div>
           <div class="command-bar"><div class="main-actions"><button class="primary" id="toggle">开始</button><button id="answerOnly">只答题，不播放视频</button></div><div class="utility-actions"><button id="retry">重试失败题</button><button id="next">下一章</button></div></div>
@@ -11350,7 +11352,7 @@ var CXOCSRuntime = (() => {
       :host{color:#243247;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
       .panel{width:400px;background:#f8fafc;border-color:#dce3ed;border-radius:12px;box-shadow:0 12px 36px #10254220}
       header{min-height:54px;padding:11px 14px;border-color:#e6ebf1;gap:8px;background:#fff}
-      .brand-mark{width:28px;height:28px;border-radius:7px;background:#315bd5;font-size:14px;box-shadow:none}.brand strong{font-size:14px;letter-spacing:0;color:#26354b}.brand>span{display:none}
+      .brand-mark{width:28px;height:28px;border-radius:7px;background:#315bd5;font-size:14px;box-shadow:none}.brand-mark svg{display:block;width:100%;height:100%}.brand strong{font-size:14px;letter-spacing:0;color:#26354b}.brand>span{display:none}
       header .small{font-size:11px;white-space:nowrap}#collapse{background:transparent;color:#6b778b}#dockToggle{font-size:16px;padding:2px 6px}#nativeCatalog{border:0;background:transparent;color:#748096;padding:4px}
       button{color:#43536b;border-color:#dce3ed;border-radius:7px;font-weight:500}button:hover{background:#f1f5fb;border-color:#bac9e4}button.primary{background:#315bd5;border-color:#315bd5;box-shadow:none}button.primary:hover{background:#264abd;border-color:#264abd}
       button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline-color:#6c91f0}

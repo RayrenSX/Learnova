@@ -32,6 +32,7 @@ if (greasyFork) {
 const begin = '// CHAOXING_MODULE_BEGIN';
 const end = '// CHAOXING_MODULE_END';
 source = fs.readFileSync(path.join(root, 'src/chaoxing.js'), 'utf8').trim();
+source = source.replace('// BRAND_ICON',()=>`const LEARNOVA_ICON = ${JSON.stringify(fs.readFileSync(path.join(root,'assets/learnova-icon.svg'),'utf8'))};`);
 const studyTools = esbuild.buildSync({entryPoints:[path.join(root,'src/study-tools.cjs')],bundle:true,write:false,platform:'browser',format:'iife',globalName:'StudyTools',minify}).outputFiles[0].text;
 const dashboard = esbuild.buildSync({entryPoints:[path.join(root,'src/course-dashboard.cjs')],bundle:true,write:false,platform:'browser',format:'iife',globalName:'CourseDashboard',minify}).outputFiles[0].text;
 source = source.replace(/\/\/ STUDY_TOOLS_BEGIN[\s\S]*?\/\/ STUDY_TOOLS_END/,()=>`// STUDY_TOOLS_BEGIN\n${studyTools}\n${dashboard}\n// STUDY_TOOLS_END`);
@@ -62,7 +63,7 @@ source = source.replace('// LEARNING_TOOLS', () => fs.readFileSync(path.join(roo
 const ocsBundle = esbuild.buildSync({entryPoints:[path.join(__dirname,'ocs-runtime.cjs')],bundle:true,write:false,platform:'browser',format:'iife',globalName:'CXOCSRuntime',minify}).outputFiles[0].text;
 source = source.replace(/\/\/ OCS_RUNTIME_BEGIN[\s\S]*?\/\/ OCS_RUNTIME_END/, () => '// OCS_RUNTIME_BEGIN\n'+ocsBundle+'\n// OCS_RUNTIME_END');
 const pintiaBundle = greasyFork ? '' : esbuild.buildSync({entryPoints: [path.join(root, 'pintia/src/main.cjs')], bundle: true,
-  write: false, platform: 'browser', format: 'iife', charset: 'utf8', legalComments: 'inline'}).outputFiles[0].text;
+  write: false, platform: 'browser', format: 'iife', charset: 'utf8', legalComments: 'inline',loader:{'.svg':'text'}}).outputFiles[0].text;
 const platformsBundle = greasyFork ? '' : esbuild.buildSync({stdin:{contents:"require('./src/course-platforms.cjs').startPlatformWorkbench();",resolveDir:root},bundle:true,write:false,platform:'browser',format:'iife',charset:'utf8',legalComments:'inline'}).outputFiles[0].text;
 const output = `${metadata}
 

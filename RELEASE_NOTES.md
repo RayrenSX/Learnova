@@ -1,3 +1,9 @@
+Learnova 0.1.5
+
+- Add the blue book / play icon to Chaoxing and Pintia headers and userscript metadata.
+- Add reusable SVG and PNG icon assets and a 1280 × 640 project cover.
+- Refresh README and platform descriptions with the new artwork, current installation links, page-specific navigation and the unified question-bank setup. Remove outdated review-pending and unpublished-feature notices.
+
 Learnova 0.1.4
 
 - Personal space shows Course Queue, Home and Settings, without playback controls, chapter catalog, chat or records. Course pages keep the catalog and place the queue and homework tools under Home.

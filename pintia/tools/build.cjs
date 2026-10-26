@@ -14,6 +14,7 @@ let metadata = `// ==UserScript==
 // @downloadURL  https://github.com/RayrenSX/Learnova/releases/latest/download/pintia-helper.user.js
 // @description  根据题目诊断现有代码，解释错因并生成修正代码；独立填写适配，不提交答案。
 // @author       Ray
+// @icon         https://raw.githubusercontent.com/RayrenSX/Learnova/main/assets/learnova-icon-256.png
 // @license      MIT
 // @match        https://pintia.cn/problem-sets/*
 // @run-at       document-end
@@ -30,7 +31,7 @@ let metadata = `// ==UserScript==
 if (greasyFork) metadata = metadata.replace(/^\/\/ @(?:updateURL|downloadURL)[^\n]*\n/gm, '')
   .replace('// @grant        unsafeWindow', '// @grant        GM_info\n// @grant        unsafeWindow');
 const output = esbuild.buildSync({entryPoints: [path.join(root, 'src/main.cjs')], bundle: true,
-  write: false, platform: 'browser', format: 'iife', charset: 'utf8', legalComments: 'inline'}).outputFiles[0].text;
+  write: false, platform: 'browser', format: 'iife', charset: 'utf8', legalComments: 'inline',loader:{'.svg':'text'}}).outputFiles[0].text;
 const updater = esbuild.buildSync({entryPoints:[path.join(root,'../src/update.cjs')], bundle:true, write:false, platform:'browser', format:'iife', globalName:'StudyHelperUpdate', define:{LEARNOVA_DISTRIBUTION:JSON.stringify(greasyFork ? 'greasyfork' : 'github')}}).outputFiles[0].text;
 const script = metadata + '\n' + updater + '\nStudyHelperUpdate.standalone = true;\n' + output;
 if (!greasyFork) fs.writeFileSync(path.join(root, 'Pintia代码助手.user.js'), script);

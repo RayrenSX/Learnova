@@ -1,6 +1,8 @@
+![Learnova](https://raw.githubusercontent.com/RayrenSX/Learnova/main/assets/learnova-cover.png)
+
 # Learnova for Chaoxing
 
-学习通课程学习工作台，当前版本 **0.1.4**。
+学习通课程学习工作台，当前版本 **0.1.5**。
 
 ## 功能
 

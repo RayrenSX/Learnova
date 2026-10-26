@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <title>Learnova — 学习工作台</title>
+  <rect width="1280" height="640" fill="#F5F7FC"/>
+  <g transform="translate(120 192) scale(.25)">
+    <rect width="1024" height="1024" rx="224" fill="#315BD5"/>
+    <path d="M242 286c84-8 160 14 222 59v407c-62-45-138-67-222-59-19 2-34-12-34-30V320c0-18 15-32 34-34Z" fill="#fff"/>
+    <path d="M560 345c62-45 138-67 222-59 19 2 34 16 34 34v343c0 18-15 32-34 30-84-8-160 14-222 59V345Z" fill="#fff"/>
+    <path d="m621 434 135 78-135 78V434Z" fill="#315BD5"/>
+  </g>
+  <text x="440" y="300" font-family="Segoe UI,Arial,sans-serif" font-size="94" font-weight="650" letter-spacing="-3" fill="#24334C">Learnova</text>
+  <text x="445" y="365" font-family="Microsoft YaHei,Segoe UI,sans-serif" font-size="28" fill="#687A96">课程学习 · 题库与 AI · 代码工作台</text>
+  <text x="445" y="416" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-size="20" fill="#315BD5">Chaoxing / Pintia</text>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Learnova</title>
+  <rect width="1024" height="1024" rx="224" fill="#315BD5"/>
+  <path d="M242 286c84-8 160 14 222 59v407c-62-45-138-67-222-59-19 2-34-12-34-30V320c0-18 15-32 34-34Z" fill="#fff"/>
+  <path d="M560 345c62-45 138-67 222-59 19 2 34 16 34 34v343c0 18-15 32-34 30-84-8-160 14-222 59V345Z" fill="#fff"/>
+  <path d="m621 434 135 78-135 78V434Z" fill="#315BD5"/>
+</svg>

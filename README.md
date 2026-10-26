@@ -1,6 +1,8 @@
+![Learnova — 课程学习、题库与 AI、代码工作台](assets/learnova-cover.png)
+
 # Learnova
 
-**学习通与 Pintia 的学习工作台 · 当前版本 0.1.4**
+**学习通与 Pintia 的学习工作台 · 当前版本 0.1.5**
 
 [![Release](https://img.shields.io/github/v/release/RayrenSX/Learnova?label=release)](https://github.com/RayrenSX/Learnova/releases/latest)
 [![Build](https://github.com/RayrenSX/Learnova/actions/workflows/release.yml/badge.svg)](https://github.com/RayrenSX/Learnova/actions/workflows/release.yml)
@@ -8,7 +10,7 @@
 
 Learnova 将课程导航、媒体与阅读辅助、题库及 AI 辅助，以及 Pintia 代码编辑与测试集中到网页内的工作台。安装一份合并脚本，即可在支持的网站加载对应模块。
 
-[安装 Learnova](https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.user.js) · [Greasy Fork 学习通版](https://greasyfork.org/zh-CN/scripts/602230-learnova-for-chaoxing) · [Greasy Fork Pintia 版](https://greasyfork.org/zh-CN/scripts/602231-learnova-for-pintia) · [版本更新](https://github.com/RayrenSX/Learnova/releases) · [反馈问题](https://github.com/RayrenSX/Learnova/issues)
+[ScriptCat 合并版](https://scriptcat.org/zh-CN/script-show-page/8739) · [安装 Learnova](https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.user.js) · [Greasy Fork 学习通版](https://greasyfork.org/zh-CN/scripts/602230-learnova-for-chaoxing) · [Greasy Fork Pintia 版](https://greasyfork.org/zh-CN/scripts/602231-learnova-for-pintia) · [版本更新](https://github.com/RayrenSX/Learnova/releases) · [反馈问题](https://github.com/RayrenSX/Learnova/issues)
 
 ## 安装
 
@@ -25,7 +27,7 @@ Learnova 将课程导航、媒体与阅读辅助、题库及 AI 辅助，以及 
 
 每个站点只启用一份对应模块，避免出现两个工作台。Greasy Fork 因单脚本体积限制分别提供学习通版与 Pintia 版，可按需安装。脚本覆盖学习通相关域名、支持的阅读资源页，以及 `pintia.cn/problem-sets/*`。
 
-[ScriptCat 合并版条目](https://scriptcat.org/zh-CN/script-show-page/8739)已提交，当前处于平台审核中，普通用户暂时无法下载；可先通过上方已开放的入口安装。
+[ScriptCat 合并版](https://scriptcat.org/zh-CN/script-show-page/8739)已公开发布，可直接安装。ScriptCat、Greasy Fork 与 GitHub 使用同一版本发布源。
 
 **从旧 3.x / 1.x 版本迁移：** 本次更名并将版本统一为 `0.1.2`，首次需要手动安装，并停用旧脚本。脚本管理器按安装脚本隔离配置；如果原设置没有自动保留，请在新版中重新填写接口、密钥和题库配置。
 
@@ -53,15 +55,25 @@ Learnova 将课程导航、媒体与阅读辅助、题库及 AI 辅助，以及 
 
 Pintia 模块不点击正式提交。代码填写与平台测试分别处理；是否提交由用户在平台中决定。更详细的操作见 [Pintia 说明](pintia/README.md)。
 
+## 按页面使用
+
+| 页面 | 显示与入口 |
+| --- | --- |
+| 学习通空间页 | 课程队列 → 常用 → 设置；隐藏播放控制与媒体统计，读取已加载课程后勾选启动 |
+| 学习通课程学习页 | 目录、常用、AI 聊天、设置、记录；课程队列和课后作业收在常用中 |
+| Pintia 题目页 | 代码编辑器、平台测试、AI 分析及手动应用修正 |
+
+题库统一在“设置 → AI / 题库 → 题库管理”，默认显示 OCS 配置，也可选择 ABC / N1、本地题库和缓存。答题相关开关默认关闭，播放相关开关默认开启；已有个人设置保留。
+
 ## 首次配置
 
 ### 资料、导出与复习
 
-学习通首页新增“资料与复习工具”：Word/Markdown 试卷导出（含无答案版及只读分页）、课件原文件入口、跨课程待办与截止时间、AI 用量、资料总结、复习卡片及可关闭的原生粘贴辅助。Pintia 提供当前题与题目集 Markdown 导出。合并版另有智慧树、智慧职教和中国大学 MOOC 的基础手动工作台；完整路由与真实账号场景仍待验收。入口和源码参考见 [工具说明](docs/STUDY_TOOLS.md)。这些新增能力目前属于本地未发布工作版本。
+学习通首页新增“资料与复习工具”：Word/Markdown 试卷导出（含无答案版及只读分页）、课件原文件入口、跨课程待办与截止时间、AI 用量、资料总结、复习卡片及可关闭的原生粘贴辅助。Pintia 提供当前题与题目集 Markdown 导出。合并版另有智慧树、智慧职教和中国大学 MOOC 的基础手动工作台；完整路由与真实账号场景仍待验收。入口和源码参考见 [工具说明](docs/STUDY_TOOLS.md)。这些能力已随 0.1.4 发布。
 
 ### 课程队列、聊天和现成题库
 
-- **课程队列：** 在学习通课程列表页打开“课程队列 → 读取当前页课程”，或粘贴带 `courseid`、`clazzid` 的课程链接。勾选后开始，支持暂停、调整顺序、移除与重置。平台目录全部标记完成后才进入下一门；进度保存在脚本存储，刷新后继续，多个标签页使用运行租约避免重复调度。
+- **课程队列：** 在学习通空间页打开“课程队列 → 读取空间课程”，或粘贴带 `courseid`、`clazzid` 的课程链接。勾选后开始，支持暂停、调整顺序、移除与重置。平台目录全部标记完成后才进入下一门；进度保存在脚本存储，刷新后继续，多个标签页使用运行租约避免重复调度。
 - **AI 聊天：** 打开“AI 聊天”，复用 AI / 题库中保存的接口、模型和密钥；支持连续追问、停止回复和清空。会话仅保留在当前页面。
 - **现成题库：** 在“设置 → AI / 题库 → 题库管理 → 在线题库”选择 ABC 或 N1，填入该服务的密钥保存。ABC 支持 HTTPS 节点 2 和原默认 HTTP 节点；节点切换保留该服务密钥。HTTP 节点明文传输密钥与题目，建议选择 HTTPS。服务由第三方运营，需要其有效授权及配额；本项目没有附送题库账号。
 - **OCS 通用题库：** 在“AI / 题库 → 题库管理 → 在线题库 → 自定义 / OCS 题库”直接粘贴 OCS JSON 数组并保存，不限于 N1。依据 [OCS 官方格式](https://docs.ocsjs.com/docs/other/api) 适配 GET/POST、fetch/GM、json/text、占位符、handler 与 data.handler、判断/填空题型及答案分隔符。同请求配置自动去重，保留首个配置和优先级；不同密钥或解析方式分别保留。代码只在限时隔离环境运行，依赖页面、存储或额外网络的扩展代码不兼容。HTTP 服务会明文传输密钥和题目。

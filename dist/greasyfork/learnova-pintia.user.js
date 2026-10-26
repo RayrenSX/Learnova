@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         Learnova for Pintia
 // @namespace    local.pintia.code-helper
-// @version      0.1.4
+// @version      0.1.5
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @description  根据题目诊断现有代码，解释错因并生成修正代码；独立填写适配，不提交答案。
 // @author       Ray
+// @icon         https://raw.githubusercontent.com/RayrenSX/Learnova/main/assets/learnova-icon-256.png
 // @license      MIT
 // @match        https://pintia.cn/problem-sets/*
 // @run-at       document-end
@@ -35,7 +36,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.4",
+        version: "0.1.5",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -31042,7 +31043,7 @@ ${example.output}`);
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.4",
+        version: "0.1.5",
         private: true,
         description: "学习通播放、阅读与答题和 Pintia 代码工作台合并用户脚本，按网站自动加载",
         main: "学习助手完整版.user.js",
@@ -31072,9 +31073,17 @@ ${example.output}`);
     }
   });
 
+  // assets/learnova-icon.svg
+  var require_learnova_icon = __commonJS({
+    "assets/learnova-icon.svg"(exports, module) {
+      module.exports = '<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">\n  <title>Learnova</title>\n  <rect width="1024" height="1024" rx="224" fill="#315BD5"/>\n  <path d="M242 286c84-8 160 14 222 59v407c-62-45-138-67-222-59-19 2-34-12-34-30V320c0-18 15-32 34-34Z" fill="#fff"/>\n  <path d="M560 345c62-45 138-67 222-59 19 2 34 16 34 34v343c0 18-15 32-34 30-84-8-160 14-222 59V345Z" fill="#fff"/>\n  <path d="m621 434 135 78-135 78V434Z" fill="#315BD5"/>\n</svg>\n';
+    }
+  });
+
   // pintia/src/ui.cjs
   var require_ui = __commonJS({
     "pintia/src/ui.cjs"(exports, module) {
+      var brandIcon = require_learnova_icon();
       module.exports = `<style>
   :host{color-scheme:light;font:13px/1.6 system-ui,"Microsoft YaHei",sans-serif;color:#203e51}*{box-sizing:border-box}
   button,input,textarea{font:inherit}button{cursor:pointer;border:1px solid #d4e1e8;border-radius:8px;background:#fff;color:#305469;padding:7px 11px}button:hover{background:#edf5f9}button:disabled{opacity:.4;cursor:default}button.primary{background:#176783;border-color:#176783;color:#fff;font-weight:650}button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid #389abc;outline-offset:2px}
@@ -31125,9 +31134,10 @@ ${example.output}`);
   .test-diagnostic{margin:0 0 10px;border-color:#e8cfba}.test-diagnostic .test-card-heading{background:#fff3e9;color:#96521f}.test-diagnostic .test-value{min-height:0;max-height:180px;color:#743e22}
   #test-runtime{margin:10px 0 0}#test-full-feedback{margin-top:9px}#test-full-feedback summary{font-size:11px;padding:6px 0}#test-log{margin:0;font-size:11px;padding:9px;max-height:260px;overflow:auto}
   @media(max-width:420px){.test-grid{gap:7px;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}.test-card-heading{padding:5px 7px}.editor-statusbar{padding:3px 6px;gap:3px}.editor-tools{gap:0}.editor-tools button{padding:1px 4px}}
+  .learnova-brand{display:flex;align-items:center;gap:8px;min-width:0}.learnova-icon{display:block;width:28px;height:28px;flex:0 0 28px}.learnova-icon svg{display:block;width:100%;height:100%}
 </style>
 <section class="panel" aria-label="Pintia 代码助手">
-  <header id="drag-handle" tabindex="0" role="group" aria-label="拖动助手窗口；也可用方向键移动"><div><strong>Learnova</strong><small>拖动移动</small></div><div><button id="float-mode" title="切换贴合网页或浮窗">浮窗</button><button id="collapse" title="显示原网页代码区" aria-label="收起助手">原网页</button></div></header>
+  <header id="drag-handle" tabindex="0" role="group" aria-label="拖动助手窗口；也可用方向键移动"><div class="learnova-brand"><span class="learnova-icon" aria-hidden="true">${brandIcon}</span><strong>Learnova</strong><small>拖动移动</small></div><div><button id="float-mode" title="切换贴合网页或浮窗">浮窗</button><button id="collapse" title="显示原网页代码区" aria-label="收起助手">原网页</button></div></header>
   <div id="editor-workspace" class="editor-workspace"><div class="editor-toolbar"><select id="workspace-language" aria-label="平台编程语言" hidden></select><strong id="editor-language">读取语言中</strong><span id="editor-sync">等待平台代码</span><button id="sync-now" class="link-button" hidden>同步到平台</button><div class="font-controls" aria-label="代码字号"><button id="font-smaller" aria-label="减小代码字号" title="减小字号">A−</button><select id="editor-font-size" aria-label="代码字号"></select><button id="font-larger" aria-label="增大代码字号" title="增大字号">A+</button></div><button id="editor-fullscreen" class="link-button" title="全屏代码编辑器">全屏</button></div><div id="workspace-editor" class="editor-frame" aria-label="代码输入区域" title="Tab 缩进 · Shift+Tab 取消缩进 · Ctrl+/ 注释 · Ctrl+Space 补全 · Ctrl+F 查找 · Ctrl+Z 撤销"></div><div class="editor-statusbar"><span id="editor-position">行 1，列 1</span><div class="editor-tools"><button id="editor-undo" title="撤销（Ctrl+Z）" aria-label="撤销编辑" disabled>↶</button><button id="editor-redo" title="重做（Ctrl+Y / Ctrl+Shift+Z）" aria-label="重做编辑" disabled>↷</button><button id="editor-search" title="查找 / 替换（Ctrl+F）">查找</button><button id="editor-wrap" title="切换代码自动折行" aria-pressed="false">折行</button></div></div></div>
   <div id="editor-splitter" role="separator" tabindex="0" aria-label="调整代码区与下方内容的高度" aria-orientation="horizontal" aria-valuemin="15" aria-valuemax="100" aria-valuenow="50" title="拖动调整高度；方向键微调"><button id="editor-collapse" type="button" aria-label="收起下方区域" aria-pressed="false" title="收起下方区域">⌄</button></div>
   <nav role="tablist" aria-label="助手页面"><button id="tab-test" role="tab" aria-controls="test-page" aria-selected="false" tabindex="-1">测试反馈</button><button id="tab-analysis" role="tab" aria-controls="analysis-page" aria-selected="true">AI 分析</button><button id="tab-settings" role="tab" aria-controls="settings-page" aria-selected="false" tabindex="-1">设置</button><span class="nav-note">仅测试，不提交</span></nav>
