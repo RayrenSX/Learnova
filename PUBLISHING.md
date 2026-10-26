@@ -2,6 +2,14 @@
 
 All editions currently use **0.1.4**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
 
+## 0.1.4 publication status (2026-10-26)
+
+- [GitHub release](https://github.com/RayrenSX/Learnova/releases/tag/v0.1.4) published from `777d56d`. The [tagged build](https://github.com/RayrenSX/Learnova/actions/runs/40276633021) passed and uploaded all eight script / metadata assets.
+- Downloaded release assets have version 0.1.4 and valid syntax. The downloaded combined script passed all nine page / queue regression scenarios.
+- Existing platform sync URLs continue to point to `releases/latest/download/`; no sync-source URL change is required.
+- ScriptCat's public installation file was still version 0.1.3 during this check. The browser session was not signed in, and GitHub OAuth navigation failed at the connection layer. Manual synchronization remains pending.
+- Greasy Fork returned connection resets before a page could load. Public 0.1.4 synchronization could not be confirmed; do not report it as complete until both listings' public installation files show 0.1.4.
+
 ## Release process
 
 1. Increase the version and update `RELEASE_NOTES.md`, the README version labels, and platform descriptions under `docs/`.
