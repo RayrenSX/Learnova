@@ -2,6 +2,10 @@
 
 The root package.json is the build version source. Keep pintia/package.json and both lockfile root versions in sync when releasing.
 
+GitHub release v0.1.2: https://github.com/RayrenSX/Learnova/releases/tag/v0.1.2
+
+The initial tagged build and release workflow completed successfully. All four release assets were verified through anonymous downloads with version 0.1.2.
+
 1. Increase the version (for example, 0.1.2 → 0.1.3) and update RELEASE_NOTES.md.
 2. Run `npm ci`, `npm ci --prefix pintia`, `npm run build`, `npm run build --prefix pintia`, `npm run check`, `npm run check --prefix pintia`, and `npm run test:update`.
 3. Commit the changes, push main, then push the matching tag (for example `git tag v0.1.3` and `git push origin v0.1.3`).
@@ -20,7 +24,7 @@ ScriptCat combined-edition listing (0.1.2): https://scriptcat.org/zh-CN/script-s
 
 ScriptCat install URL: https://scriptcat.org/scripts/code/8739/Learnova.user.js
 
-The initial ScriptCat version has been uploaded. Automatic site synchronization has not yet been configured; the script metadata points installed clients to the GitHub release assets. Greasy Fork publication is pending the account security setup required by its new-author page (verified email plus 2FA, or external-login-only setup).
+The initial ScriptCat version has been uploaded and its listing shows version 0.1.2. A direct anonymous request to its installation URL currently returns HTTP 404 with “脚本不存在”; installation availability still needs confirmation. Automatic site synchronization has not yet been configured; the uploaded script metadata points installed clients to the GitHub release assets. Use the verified GitHub installation URL while the ScriptCat download is unavailable. Greasy Fork publication is pending email confirmation; 2FA and an external login are enabled.
 
 Publish the combined `dist/study-helper.user.js` as Learnova. The optional Pintia-only edition is `dist/pintia-helper.user.js`, named Learnova for Pintia. The license is MIT; source and issue links are https://github.com/RayrenSX/Learnova.
 
