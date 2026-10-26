@@ -1,6 +1,10 @@
 # Publishing Learnova
 
-All editions currently use **0.1.6**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+All editions currently use **0.1.7**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+
+## 0.1.7 verification (2026-10-26)
+
+GitHub release v0.1.7 and its tagged build succeeded. ScriptCat 8739, Greasy Fork Chaoxing 602230 and Pintia 602231 were synchronized; all three public installation files report 0.1.7. The combined and Chaoxing downloads include conditional vote-model fields and unified catalog completion detection. Targeted voting/catalog regressions, syntax, update and distribution checks passed. On the supplied live course catalog, the revised detector recognized all 48 chapters as completed, consistent with the platform's 96/96 task points.
 
 ## Icon resolution (0.1.6)
 
