@@ -75,6 +75,11 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>å­¦ä¹
         window.setTimeout = (fn, ms, ...args) => originalTimeout(fn, ms === 90000 || ms === 210000 || ms === 330000 ? 250 : ms, ...args);
       }
       window.GM_xmlhttpRequest = (options) => {
+        // Update checks use a separate service and must not count as AI requests.
+        if (new URL(options.url).hostname === 'github.com' && new URL(options.url).pathname.endsWith('.meta.js')) {
+          queueMicrotask(() => options.onload({status:200, responseText:'// @version 0.0.0'}));
+          return {abort() {}};
+        }
         if (options.responseType === 'blob') {
           window.imageRequests = (window.imageRequests || 0) + 1;
           (window.blobRequests ||= []).push(options.url);

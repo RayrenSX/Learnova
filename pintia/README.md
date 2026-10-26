@@ -1,6 +1,6 @@
-# Pintia 代码工作台 v1.3.2
+# Learnova for Pintia v0.1.2
 
-Pintia 模块专门用于根据题目检查你已写的代码、解释错因和给出修正代码。现已与学习通助手合并，推荐只安装根目录 [学习助手完整版.user.js](../学习助手完整版.user.js)；它会在各自网站自动加载对应模块，Pintia 和学习通使用不同的配置键。本站模块版本为 v1.3.2，合并安装文件版本为 v3.7.0。
+Pintia 模块专门用于根据题目检查你已写的代码、解释错因和给出修正代码。推荐安装 [Learnova 合并版](https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.user.js)，也可选择 [Pintia 独立版](https://github.com/RayrenSX/Learnova/releases/latest/download/pintia-helper.user.js)。两个版本统一为 v0.1.2，标题栏显示版本号并提供更新检查；请只安装其中一个版本。
 
 更新时停用原独立 Pintia 脚本并刷新页面，避免两个编辑器同时同步代码。油猴将存储按安装脚本隔离，合并文件沿用学习通安装身份，无法直接读取旧独立 Pintia 的配置；在 Pintia 的“设置 → AI 服务”重新保存一次接口、模型和密钥。合并版本按用户要求仅构建，未运行测试。
 
