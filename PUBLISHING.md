@@ -1,6 +1,10 @@
 # Publishing Learnova
 
-All editions currently use **0.1.5**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+All editions currently use **0.1.6**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+
+## Icon resolution (0.1.6)
+
+Both icon metadata fields now use the 1024×1024 PNG. ScriptCat's detail page requests `/icon/thumb/64` without a high-DPI `srcset`, even at a device pixel ratio of 1.5. Increasing source resolution improves the stored original, but the platform's fixed 64×64 display pipeline can still blur the header icon on scaled screens.
 
 ## 0.1.5 branding update (2026-10-26)
 
