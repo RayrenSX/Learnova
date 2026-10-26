@@ -45,7 +45,9 @@ Local Greasy Fork files are under `dist/greasyfork/`; release asset names are fl
 | Chaoxing | [602230](https://greasyfork.org/zh-CN/scripts/602230-learnova-for-chaoxing) | `https://github.com/RayrenSX/Learnova/releases/latest/download/learnova-chaoxing.user.js` | `https://raw.githubusercontent.com/RayrenSX/Learnova/main/docs/greasyfork-chaoxing.md` |
 | Pintia | [602231](https://greasyfork.org/zh-CN/scripts/602231-learnova-for-pintia) | `https://github.com/RayrenSX/Learnova/releases/latest/download/learnova-pintia.user.js` | `https://raw.githubusercontent.com/RayrenSX/Learnova/main/docs/greasyfork-pintia.md` |
 
-Both listings were created at version 0.1.2. Use each listing's Admin → Source Syncing settings and select Automatic; additional info uses Markdown. Verify the first sync result after saving.
+Both listings were created at version 0.1.2. Automatic source synchronization and Markdown additional-info synchronization are configured on both listings. Their initial syncs returned “Script successfully synced.” The Pintia settings were reloaded and confirmed to retain Automatic and the configured source/description URLs.
+
+For later edits, use each listing's Admin → Source Syncing settings. A tagged GitHub release updates the stable asset URLs that Greasy Fork checks; its description documents follow main.
 
 Greasy Fork requires readable, non-minified code below 2 MB. The build separates the two sites, retains source and license comments, removes GitHub update/download metadata, and uses Greasy Fork's native installed update URLs. In-script update checks, including manual checks, are throttled to one per 24 hours. When native metadata is unavailable, the version button asks the user to check through the manager.
 
