@@ -7,8 +7,9 @@ All editions currently use **0.1.4**. The root `package.json` is the build versi
 - [GitHub release](https://github.com/RayrenSX/Learnova/releases/tag/v0.1.4) published from `777d56d`. The [tagged build](https://github.com/RayrenSX/Learnova/actions/runs/40276633021) passed and uploaded all eight script / metadata assets.
 - Downloaded release assets have version 0.1.4 and valid syntax. The downloaded combined script passed all nine page / queue regression scenarios.
 - Existing platform sync URLs continue to point to `releases/latest/download/`; no sync-source URL change is required.
-- ScriptCat's public installation file was still version 0.1.3 during this check. The browser session was not signed in, and GitHub OAuth navigation failed at the connection layer. Manual synchronization remains pending.
-- Greasy Fork returned connection resets before a page could load. Public 0.1.4 synchronization could not be confirmed; do not report it as complete until both listings' public installation files show 0.1.4.
+- ScriptCat 8739 was manually synchronized through its existing source-sync form. Its public installation file now reports `@version 0.1.4`.
+- Greasy Fork Chaoxing 602230 and Pintia 602231 both returned “Script successfully synced.” Their public installation files now report `@version 0.1.4`; the synchronized descriptions also use 0.1.4.
+- The initial connection failures were resolved using the already-running DualNet explicit proxy entry. System proxy settings and saved automatic sync source URLs were not changed.
 
 ## Release process
 
