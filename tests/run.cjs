@@ -4,6 +4,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const ueditorFixture = require('./fixtures/ueditor.cjs');
 const catalogFixture = require('./fixtures/catalog.cjs');
+const cloudReaderFixture = require('./fixtures/cloud-reader.cjs');
 const script = fs.readFileSync(path.join(__dirname, '..', '学习通学习助手.user.js'), 'utf8');
 const BASE = 'https://mooc1.chaoxing.com';
 const URL = BASE + '/mycourse/studentstudy?knowledgeId=1';
@@ -29,11 +30,14 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
   const browser = await chromium.launch(launch);
   const results = [];
   let contexts = [];
+  let scenarioIndex = 0;
   async function setup(body, settings = {}, bank = [], api = {}, frames = {}, mediaOptions = {}) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 960 } });
     contexts.push(context);
     await context.route('**/*', (route) => {
       const url = new global.URL(route.request().url());
+      if (api.external?.[url.pathname]?.nativeFetch) return route.fulfill({status:api.external[url.pathname].status || 200,
+        headers:{'access-control-allow-origin':'*','access-control-allow-headers':'content-type'},contentType:'application/json',body:JSON.stringify(api.external[url.pathname].body)});
       if (url.pathname === '/test-image.png') return route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64') });
       const html = frames[url.pathname];
       if (url.pathname === '/mycourse/studentstudy') return route.fulfill({ contentType: 'text/html', body: wrap(body) });
@@ -43,10 +47,11 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     });
     await context.addInitScript(({ store, bankKey, settings, bank, api, mediaOptions }) => {
       const values = { [store]: { enabled: false, autoNext: true, autoAnswer: true, requireWebSearch: false, compareRandomConfidence: false, overwriteAnswers: false, blockPause: false, randomFallback: false, answerCache: false, uiTab: 'all', ...settings }, [bankKey]: bank, 'cxHelper.answers.v1': mediaOptions.cache || [] };
+      if (mediaOptions.persistentStore) Object.assign(values,JSON.parse(sessionStorage.getItem('cx-fixture-store') || '{}'));
       if (mediaOptions.defaultWebSearch) delete values[store].requireWebSearch;
       window.originalPausePrototype = HTMLMediaElement.prototype.pause;
       window.GM_getValue = (key, fallback) => values[key] ?? fallback;
-      window.GM_setValue = (key, value) => { values[key] = JSON.parse(JSON.stringify(value)); };
+      window.GM_setValue = (key, value) => { values[key] = JSON.parse(JSON.stringify(value)); if(mediaOptions.persistentStore)sessionStorage.setItem('cx-fixture-store',JSON.stringify(values)); };
       window.testStore = values;
       window.aiRequests = [];
       window.desktopNotices = [];
@@ -67,20 +72,38 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
       }
       if (api.fastQueryDeadline) {
         const originalTimeout = window.setTimeout.bind(window);
-        window.setTimeout = (fn, ms, ...args) => originalTimeout(fn, ms === 90000 || ms === 210000 ? 250 : ms, ...args);
+        window.setTimeout = (fn, ms, ...args) => originalTimeout(fn, ms === 90000 || ms === 210000 || ms === 330000 ? 250 : ms, ...args);
       }
       window.GM_xmlhttpRequest = (options) => {
         if (options.responseType === 'blob') {
           window.imageRequests = (window.imageRequests || 0) + 1;
+          (window.blobRequests ||= []).push(options.url);
           const bytes = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='), c => c.charCodeAt(0));
-          const timer = setTimeout(() => options.onload({ status: 200, response: new Blob([bytes], { type: 'image/png' }) }), 30);
+          const timer = setTimeout(() => options.onload({ status: 200, response: new Blob([bytes], { type: mediaOptions.blobTypes?.[new URL(options.url).pathname] || (/\.mp3(?:\?|$)/.test(options.url) ? 'audio/mpeg' : 'image/png') }) }), 30);
           return { abort: () => { clearTimeout(timer); window.apiAborts++; options.onabort?.(); } };
         }
-        const payload = options.data ? JSON.parse(options.data) : Object.fromEntries(new URL(options.url).searchParams);
+        const requestType = Object.entries(options.headers || {}).find(([key]) => key.toLowerCase() === 'content-type')?.[1] || '';
+        const payload = options.data ? (/^application\/x-www-form-urlencoded/i.test(requestType)
+          ? Object.fromEntries(new URLSearchParams(options.data)) : JSON.parse(options.data)) : Object.fromEntries(new URL(options.url).searchParams);
+        if (new URL(options.url).hostname === 'search.example') {
+          window.aiRequests.push({ url: options.url, payload, headers: options.headers, method: options.method });
+          const timer = setTimeout(() => {
+            if (api.searchTimeout) { options.ontimeout(); return; }
+            if (api.searchNetworkError) { options.onerror(); return; }
+            options.onload({ status: api.searchStatus || 200, responseText: api.searchInvalidJSON ? 'bad' : JSON.stringify(api.searchResponse ?? {
+              results: [{ title: '可靠资料', url: 'https://evidence.example/reference', content: '资料支持乙，单选为 B；多选对应 B 和 C。', score: 0.9 }],
+            }) });
+          }, api.searchDelay || 30);
+          return { abort: () => { clearTimeout(timer); window.apiAborts++; options.onabort?.(); } };
+        }
         if (api.external?.[new URL(options.url).pathname]) {
           const external = api.external[new URL(options.url).pathname];
-          window.aiRequests.push({ url: options.url, payload, method: options.method, headers: options.headers });
-          const timer = setTimeout(() => options.onload({ status: external.status || 200, responseText: JSON.stringify(external.body || {}) }), external.delay || 30);
+          window.aiRequests.push({ url: options.url, payload, method: options.method, headers: options.headers, rawBody: options.data });
+          const timer = setTimeout(() => {
+            if (external.timeout) { options.ontimeout(); return; }
+            if (external.networkError) { options.onerror(); return; }
+            options.onload({ status: external.status || 200, responseText: external.raw ?? JSON.stringify(external.body || {}) });
+          }, external.delay || 30);
           return { abort: () => { clearTimeout(timer); window.apiAborts++; options.onabort?.(); } };
         }
         if (api.silent) {
@@ -88,20 +111,25 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
           return { abort: () => { window.apiAborts++; } };
         }
         window.aiRequests.push({ url: options.url, payload, anonymous: options.anonymous, headers: options.headers });
+        const question = (() => { try { return JSON.parse(payload.messages?.[1]?.content || payload.input?.[0]?.content || '{}'); } catch { return {}; } })();
         const timer = setTimeout(() => {
           if (api.timeout) { options.ontimeout(); return; }
-          if (api.status) { options.onload({ status: api.status, responseText: '{}' }); return; }
-          let answer = api.answer || { answers: ['B'], confidence: 0.99 };
-          const question = (() => { try { return JSON.parse(payload.messages?.[1]?.content || payload.input?.[0]?.content || '{}'); } catch { return {}; } })();
+          if (api.status) { options.onload({ status: api.status, responseText: JSON.stringify(api.errorResponse || {}) }); return; }
+          let answer = api.byModel?.[payload.model] || api.answer || { answers: ['B'], confidence: 0.99 };
           if (api.byTitle?.[question.question]) answer = api.byTitle[question.question];
           const content = api.raw ?? JSON.stringify(answer);
-          options.onload({ status: 200, responseText: JSON.stringify({ choices: [{ message: { content } }] }) });
-        }, api.delay ?? 50);
+          options.onload({ status: 200, responseText: JSON.stringify(payload.tools ? (api.responses ?? {
+            status: 'completed', output: [
+              ...(!api.noSearch ? [{ type: 'web_search_call', id: 'test-search', status: 'completed', action: { type: 'search', query: '资料查询', sources: [{ title: '来源', url: 'https://evidence.example/reference' }] } }] : []),
+              { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: content }] },
+            ],
+          }) : { choices: [{ message: { content } }] }) });
+        }, api.delayByTitle?.[question.question] ?? api.delay ?? 50);
         return { abort: () => { clearTimeout(timer); window.apiAborts++; options.onabort?.(); } };
       };
       // 仅在测试页面模拟媒体状态；不接触真实播放器。
       window.mockMedia = (media) => {
-        media.setAttribute('src', '/mock-media.mp4');
+        if (!mediaOptions.preserveSources || (!media.getAttribute('src') && !media.querySelector('source[src]'))) media.setAttribute('src', '/mock-media.mp4');
         media.playCalls = 0;
         media.pauseCalls = 0;
         let paused = true, ended = false, currentTime = 0;
@@ -135,15 +163,26 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
       await frame.evaluate(() => document.querySelectorAll('video,audio').forEach(window.mockMedia));
     }
     await page.addScriptTag({ content: script });
-    await page.locator(`#cx-video-helper-host #${mediaOptions.startButton || 'toggle'}`).click();
+    if (!mediaOptions.noStart) await page.locator(`#cx-video-helper-host #${mediaOptions.startButton || 'toggle'}`).click();
     return { page, context, errors };
   }
   async function test(name, fn) {
+    const index = scenarioIndex++;
+    if (process.env.CX_TEST_SHARD) {
+      const [shard, total] = process.env.CX_TEST_SHARD.split('/').map(Number);
+      if (!Number.isInteger(shard) || !Number.isInteger(total) || shard < 1 || shard > total) throw new Error('Invalid CX_TEST_SHARD');
+      if (index % total !== shard - 1) return;
+    }
     if (process.env.CX_TEST_FILTER && !new RegExp(process.env.CX_TEST_FILTER).test(name)) return;
-    try { await fn(); results.push({ name, passed: true }); console.log(`PASS ${name}`); }
+    if (process.env.CX_TEST_TRACE) {
+      fs.mkdirSync(path.join(__dirname, '..', 'test-results'), {recursive:true});
+      fs.writeFileSync(path.join(__dirname, '..', 'test-results', `progress-${(process.env.CX_TEST_SHARD || 'single').replace('/', '-')}.json`),
+        JSON.stringify({name,at:new Date().toISOString(),completed:results.length}));
+    }
+    try { await fn(); results.push({ index, name, passed: true }); console.log(`PASS ${name}`); }
     catch (error) {
       const diagnostics = await Promise.all(contexts.flatMap(context => context.pages()).map(async page => ({ url: page.url(), logs: await page.locator('#cx-video-helper-host #logs').textContent().catch(() => '') })));
-      results.push({ name, passed: false, error: error.message, diagnostics });
+      results.push({ index, name, passed: false, error: error.message, diagnostics });
       console.error(`FAIL ${name}: ${error.message}\n${JSON.stringify(diagnostics)}`);
     }
     finally { for (const context of contexts) await context.close(); contexts = []; }
@@ -221,7 +260,8 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
       assert.deepEqual(await page.evaluate(() => window.testStore['cxHelper.answers.v1']), []);
     }
   });
-  await require('./fixtures/single-request.cjs')({ test, setup, choice, blank, aiSettings, checked, logContains });
+  await require('./fixtures/verified-search.cjs')({ test, setup, choice, blank, aiSettings, checked, logContains });
+  await require('./fixtures/n1-bank.cjs')({ test, setup, choice, blank, aiSettings, checked, logContains });
   await test('后台原型暂停被拦截，收起窗口与切换设置不暂停，停止后还原原型', async () => {
     const { page } = await setup('<video id="v"></video>', { blockPause: true }, [], {}, {}, { hidden: true });
     await page.waitForFunction(() => !document.querySelector('#v').paused);
@@ -265,6 +305,26 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     assert.equal(await page.locator('#v').evaluate(m => m.paused), false);
   });
 
+  await test('审查修复：前台 iframe 焦点转移前的 pointerdown 手动暂停保留', async () => {
+    for (const blockPause of [true, false]) {
+      const body = '<input id="parentInput"><iframe src="/player" width="600" height="260"></iframe>';
+      const player = '<div data-cx-player><video id="v" width="320" height="180"></video><button id="manual" data-cx-pause onpointerdown="document.querySelector(\'#v\').pause()">暂停</button></div>';
+      const { page, errors } = await setup(body, { blockPause, autoResume: false, autoNext: false, autoAnswer: false }, [], {}, { '/player': player });
+      const frame = page.frames().find(f => f.url().endsWith('/player'));
+      await frame.waitForFunction(() => !document.querySelector('#v').paused);
+      await page.locator('#parentInput').click();
+      assert.equal(await frame.evaluate(() => Document.prototype.hasFocus.call(document)), false);
+      await frame.locator('#manual').click();
+      await page.waitForTimeout(1800);
+      assert.deepEqual(await frame.locator('#v').evaluate(m => [m.paused, m.pauseCalls, m.playCalls]), [true, 1, 1]);
+      await page.locator('#cx-video-helper-host #resumeMedia').click();
+      await frame.waitForFunction(() => !document.querySelector('#v').paused);
+      await page.locator('#parentInput').click();
+      await frame.locator('#v').evaluate(m => m.pause());
+      assert.equal(await frame.locator('#v').evaluate(m => m.paused), !blockPause);
+      assert.deepEqual(errors, []);
+    }
+  });
   await test('安全配置：密钥和题库鉴权不进入页面，菜单保存清除，接口换域名不复用旧密钥', async () => {
     const banks = [{ name: '安全题库', url: 'https://bank.example/search', headers: { Authorization: 'private-bank-key' }, data: { token: 'private-bank-token' } }];
     const { page } = await setup('', { ...aiSettings, externalBanks: banks });
@@ -306,7 +366,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     assert.deepEqual(await page.evaluate(key => window.testStore[key].externalBanks, STORE), []);
     await menu(page, '配置外部题库', JSON.stringify(banks));
     assert.equal(await page.evaluate(() => document.querySelector('#cx-video-helper-host').shadowRoot.innerHTML.includes('private-bank-key')), false);
-    assert.deepEqual(await page.evaluate(key => window.testStore[key].externalBanks, STORE), banks);
+    assert.deepEqual(await page.evaluate(key => window.testStore[key].externalBanks, STORE), banks.map(item=>({...item,method:'POST'})));
   });
 
   await test('填写取消：多选、组合题及多空输入停止后续写入，不缓存和提交', async () => {
@@ -641,6 +701,101 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     assert.equal(await page.locator('#courseSidebar').evaluate(node => node.inert), false);
     assert.deepEqual(errors, []);
   });
+  await test('内置目录：原生内置及相邻拖动条可用，覆盖层跟随真实鼠标拖拽', async () => {
+    for (const placement of ['inside', 'sibling']) {
+      const fixture = catalogFixture() + `<script>
+        const sidebar = document.querySelector('#courseSidebar');
+        const handle = document.createElement('div');
+        handle.id = 'nativeSideGrip';
+        handle.style.cssText = 'position:fixed;top:28px;bottom:20px;width:12px;cursor:${placement === 'inside' ? 'col-resize' : 'default'};background:#ccc;touch-action:none';
+        const placeHandle = () => handle.style.left = sidebar.getBoundingClientRect().left + 'px';
+        ${placement === 'inside' ? 'sidebar.prepend(handle)' : 'sidebar.after(handle)'};
+        placeHandle();
+        let start;
+        handle.onpointerdown = event => { start = { x: event.clientX, width: sidebar.getBoundingClientRect().width }; handle.setPointerCapture(event.pointerId); window.resizeStarts = (window.resizeStarts || 0) + 1; };
+        handle.onpointermove = event => { if (!start) return; sidebar.style.width = start.width + start.x - event.clientX + 'px'; placeHandle(); };
+        handle.onpointerup = () => { start = null; };
+      </script>`;
+      const { page, errors } = await setup(fixture, { uiTab: 'course', autoNext: false, autoAnswer: false });
+      const sidebar = page.locator('#courseSidebar'), ui = page.locator('#cx-video-helper-host');
+      const before = await sidebar.boundingBox(), handle = await page.locator('#nativeSideGrip').boundingBox();
+      assert.equal(await page.locator('#nativeSideGrip').evaluate(node => Boolean(node.closest('[inert]'))), false, placement);
+      const cover = await ui.boundingBox();
+      assert.ok(cover.x >= handle.x + handle.width - 1 && Math.abs(cover.y - before.y) < 2, placement);
+      await page.mouse.move(handle.x + 6, handle.y + 100);
+      await page.mouse.down();
+      await page.mouse.move(handle.x - 94, handle.y + 100, { steps: 12 });
+      await page.mouse.up();
+      await page.waitForFunction(() => Math.abs(document.querySelector('#courseSidebar').getBoundingClientRect().right - document.querySelector('#cx-video-helper-host').getBoundingClientRect().right) < 2);
+      const after = await sidebar.boundingBox(), helper = await ui.boundingBox();
+      assert.equal(await page.evaluate(() => window.resizeStarts), 1, placement);
+      assert.ok(Math.abs(after.width - before.width - 100) < 2, placement);
+      assert.ok(Math.abs(helper.x - after.x - 12) < 2 && Math.abs(helper.width - after.width + 12) < 2, placement);
+      await ui.locator('#nativeCatalog').click();
+      assert.equal(await sidebar.evaluate(node => Boolean(node.querySelector('[inert]')) || node.inert), false);
+      await ui.locator('#returnHelper').click();
+      await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+      assert.equal(await sidebar.evaluate(node => Boolean(node.querySelector('[inert]')) || node.inert), false);
+      assert.deepEqual(errors, []);
+    }
+  });
+  await test('内置目录：拖动缩放逐帧跟随，收窄和隐藏后保持贴合', async () => {
+    const { page, errors } = await setup(catalogFixture(), { uiTab: 'course', autoNext: false, autoAnswer: false });
+    const measurements = await page.evaluate(async () => {
+      const sidebar = document.querySelector('#courseSidebar'), host = document.querySelector('#cx-video-helper-host');
+      const chapter = host.shadowRoot.querySelector('.chapter-link');
+      const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
+      const samples = [];
+      for (const width of [420, 470, 510, 450, 380, 310, 270, 210, 160, 300, 400]) {
+        sidebar.style.width = `${width}px`;
+        await frame(); await frame();
+        const a = sidebar.getBoundingClientRect(), b = host.getBoundingClientRect();
+        samples.push({ error: Math.max(Math.abs(a.left - b.left), Math.abs(a.width - b.width), Math.abs(a.top - b.top)), docked: host.dataset.docked });
+      }
+      sidebar.style.display = 'none'; await frame(); await frame();
+      const hidden = getComputedStyle(host).visibility === 'hidden';
+      sidebar.style.display = ''; await frame(); await frame();
+      return { samples, hidden, restored: getComputedStyle(host).visibility === 'visible', sameChapter: chapter === host.shadowRoot.querySelector('.chapter-link') };
+    });
+    assert.ok(measurements.samples.every(sample => sample.error < 2 && sample.docked === 'true'), JSON.stringify(measurements));
+    assert.ok(measurements.hidden && measurements.restored && measurements.sameChapter, JSON.stringify(measurements));
+    assert.deepEqual(errors, []);
+  });
+  await test('审查修复：窄侧栏控件可点击，收起、原目录与浮窗切换正常', async () => {
+    const { page, errors } = await setup(catalogFixture(), { uiTab: 'course', autoNext: false, autoAnswer: false });
+    const ui = page.locator('#cx-video-helper-host');
+    for (const width of [270, 210, 160]) {
+      await page.locator('#courseSidebar').evaluate((sidebar, width) => { sidebar.style.width = `${width}px`; }, width);
+      await page.waitForFunction(width => Math.abs(document.querySelector('#cx-video-helper-host').getBoundingClientRect().width - width) < 1, width);
+      const controls = await ui.evaluate(host => {
+        const bounds = host.getBoundingClientRect(), root = host.shadowRoot;
+        return ['collapse', 'nativeCatalog', 'dockToggle', 'toggle', 'answerOnly', 'resumeMedia', 'retry', 'next', 'tab-course', 'tab-home', 'tab-settings', 'tab-records'].map(id => {
+          const button = root.getElementById(id), rect = button.getBoundingClientRect();
+          return { id, within: rect.left >= bounds.left && rect.right <= bounds.right + 1,
+            clickable: root.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2) === button };
+        });
+      });
+      assert.ok(controls.every(control => control.within && control.clickable), JSON.stringify({ width, controls }));
+    }
+    await ui.screenshot({ path: path.join(__dirname, '..', 'test-results', 'course-sidebar-narrow.png'), animations: 'disabled' });
+    await ui.locator('#collapse').click();
+    assert.equal(await ui.locator('#body').isVisible(), false);
+    await ui.locator('#collapse').click();
+    assert.equal(await ui.locator('#body').isVisible(), true);
+    await ui.locator('#nativeCatalog').click();
+    assert.equal(await page.locator('#courseSidebar').evaluate(node => node.inert), false);
+    await ui.locator('#returnHelper').click();
+    assert.equal(await ui.getAttribute('data-docked'), 'true');
+    await ui.locator('#dockToggle').click();
+    assert.equal(await ui.getAttribute('data-docked'), 'false');
+    await ui.locator('#dockToggle').click();
+    assert.equal(await ui.getAttribute('data-docked'), 'true');
+    await ui.locator('#tab-settings').click();
+    await ui.getByRole('tab', { name: '答题', exact: true }).click();
+    await ui.locator('#fillLowConfidenceBlanks').check();
+    assert.equal(await ui.locator('#fillLowConfidenceBlanks').isChecked(), true);
+    assert.deepEqual(errors, []);
+  });
   await test('内置目录：延迟出现、根节点替换和侧栏移除时自动恢复', async () => {
     const { page, errors } = await setup('', { uiTab: 'course', autoNext: false, autoAnswer: false });
     const ui = page.locator('#cx-video-helper-host');
@@ -698,12 +853,12 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     const banks = [{ name: '题库', url: 'https://bank.example/search', headers: { Authorization: 'bank-panel-secret' } }];
     await ui.locator('#externalInput').fill(JSON.stringify(banks));
     await ui.locator('#saveExternal').click();
-    assert.deepEqual(await page.evaluate(key => window.testStore[key].externalBanks, STORE), banks);
+    assert.deepEqual(await page.evaluate(key => window.testStore[key].externalBanks, STORE), banks.map(item=>({...item,method:'POST'})));
     assert.equal(await ui.locator('#externalInput').inputValue(), '');
     await ui.locator('#externalInput').fill('{');
     await ui.locator('#saveExternal').click();
     assert.ok((await ui.locator('#externalFeedback').textContent()).includes('未保存'));
-    assert.deepEqual(await page.evaluate(key => window.testStore[key].externalBanks, STORE), banks);
+    assert.deepEqual(await page.evaluate(key => window.testStore[key].externalBanks, STORE), banks.map(item=>({...item,method:'POST'})));
     await ui.locator('#clearExternal').click();
     assert.deepEqual(await page.evaluate(key => window.testStore[key].externalBanks, STORE), []);
     await ui.locator('#externalSettings summary').click();
@@ -747,7 +902,8 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
   });
   await test('旧随机及不可信缓存启动时清理并写回，正常 AI 和外部题库缓存保留', async () => {
     const question = '旧随机缓存';
-    const entry = { key: JSON.stringify([question, 'single', [['A', '甲'], ['B', '乙']], 0, []]), question, answers: ['A'], confidence: 1, source: 'AI' };
+    const entry = { schemaVersion: 2, scope: require('../tools/font-codec.cjs').sourceFingerprint(JSON.stringify([2, aiSettings.apiUrl, aiSettings.apiModel, [], false, '', true])), at: Date.now(),
+      key: JSON.stringify([question, 'single', [['A', '甲'], ['B', '乙']], 0, []]), question, answers: ['A'], confidence: 1, source: 'AI' };
     const valid = [entry, { ...entry, key: '另一道题', source: '外部题库：测试' }];
     const invalid = [
       { ...entry, source: '随机选择', confidence: 0 },
@@ -825,6 +981,68 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     const disabled = await setup(body, { readDelay: 1000, autoRead: false });
     await disabled.page.waitForTimeout(2200);
     assert.equal(await disabled.page.locator('[data-cx-reader]').getAttribute('data-page'), '1');
+  });
+  await test('云盘课件：嵌套视频下方按间隔滚动全部内容，不滚动外层或伪造完成', async () => {
+    const { page } = await setup('<video></video><div style="height:1400px"></div><div class="ans-job" id="docJob"><iframe id="pdf" src="/ananas/modules/pdf/index.html"></iframe></div>',
+      { autoAnswer: false, autoRead: true, readDelay: 1000 }, [], {}, {
+        '/ananas/modules/pdf/index.html': '<iframe id="panView" style="height:240px" src="/screen/v2/file_fixture"></iframe>',
+        '/screen/v2/file_fixture': cloudReaderFixture(),
+      });
+    const reader = page.frames().find(f => f.url().endsWith('/screen/v2/file_fixture'));
+    await page.waitForTimeout(500);
+    assert.equal(await reader.evaluate(() => scrollY), 0);
+    await reader.waitForFunction(() => window.reachedBottom, null, { timeout: 15000 });
+    const progress = await reader.evaluate(() => ({ positions, height: document.scrollingElement.clientHeight }));
+    assert.ok(progress.positions.length > 3, '高于视口的幻灯片必须分段覆盖');
+    assert.ok(progress.positions.every((p,i) => p-(progress.positions[i-1] || 0) <= progress.height));
+    assert.equal(await page.evaluate(() => scrollY), 0);
+    assert.equal(await page.locator('#docJob').evaluate(e => e.classList.contains('ans-job-finished')), false);
+    assert.equal(await page.evaluate(() => window.nextClicks), 0);
+    const count = progress.positions.length;
+    await page.waitForTimeout(2200);
+    assert.equal(await reader.evaluate(() => positions.length), count);
+  });
+  await test('云盘课件：图片延迟加载、关闭阅读、暂停和只答题均不滚动', async () => {
+    const { page } = await setup('<div class="ans-job"><iframe src="/screen/v2/file_delayed"></iframe></div>',
+      { autoRead: true, readDelay: 1000 }, [], {}, { '/screen/v2/file_delayed': cloudReaderFixture({ delayed: true }) });
+    const reader = page.frames().find(f => f.url().endsWith('/screen/v2/file_delayed'));
+    await page.waitForTimeout(2200);
+    assert.equal(await reader.evaluate(() => scrollY), 0);
+    await page.locator('#cx-video-helper-host #autoRead').uncheck();
+    await reader.evaluate(() => document.querySelectorAll('img').forEach(img => { img.src = img.dataset.src; }));
+    await page.waitForTimeout(2200);
+    assert.equal(await reader.evaluate(() => scrollY), 0);
+    await page.locator('#cx-video-helper-host #autoRead').check();
+    await reader.waitForFunction(() => scrollY > 0);
+    await page.locator('#cx-video-helper-host #toggle').click();
+    const paused = await reader.evaluate(() => scrollY);
+    await page.waitForTimeout(2200);
+    assert.equal(await reader.evaluate(() => scrollY), paused);
+    await page.locator('#cx-video-helper-host #answerOnly').click();
+    await page.waitForTimeout(2200);
+    assert.equal(await reader.evaluate(() => scrollY), paused);
+  });
+  await test('云盘课件：跨域预览独立滚动并响应共享停止设置', async () => {
+    const { page } = await setup('<div class="ans-job"><iframe src="https://pan-yz.chaoxing.com/screen/v2/file_cross"></iframe></div>',
+      { autoRead: true, readDelay: 1000 }, [], {}, { '/screen/v2/file_cross': cloudReaderFixture() });
+    const reader = page.frames().find(f => f.url().includes('pan-yz'));
+    await reader.evaluate(() => { window.testStore['cxVideoHelper.settings.v1'].enabled = true; });
+    await reader.addScriptTag({ content: script });
+    await reader.waitForFunction(() => scrollY > 0);
+    assert.equal(await reader.locator('#cx-video-helper-host').count(), 0);
+    await reader.evaluate(() => { window.testStore['cxVideoHelper.settings.v1'].enabled = false; });
+    const paused = await reader.evaluate(() => scrollY);
+    await page.waitForTimeout(2200);
+    assert.equal(await reader.evaluate(() => scrollY), paused);
+    assert.equal(await page.evaluate(() => window.nextClicks), 0);
+  });
+  await test('云盘课件：普通页面同名容器和已完成任务不滚动', async () => {
+    const { page } = await setup('<iframe src="/unrelated"></iframe><div class="ans-job ans-job-finished"><iframe src="/screen/v2/file_done"></iframe></div>',
+      { autoRead: true, readDelay: 1000, autoNext: false }, [], {}, {
+        '/unrelated': cloudReaderFixture(), '/screen/v2/file_done': cloudReaderFixture(),
+      });
+    await page.waitForTimeout(2200);
+    for (const reader of page.frames().slice(1)) assert.equal(await reader.evaluate(() => scrollY), 0);
   });
   await test('独立作业页面正常填写，考试默认停止、开启后逐题切换一次', async () => {
     const work = await setup(choice(1, '独立作业', ['甲', '乙']), aiSettings, [], {}, {}, { path: '/mooc2/work/dowork' });
@@ -971,6 +1189,44 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     assert.ok(!(await timeout.page.locator('#cx-video-helper-host #status').textContent()).includes('正在查询答案'));
     assert.equal(await timeout.page.evaluate(() => window.apiAborts), 1);
   });
+  await test('低信心填空：默认拦截，开启即重试并保存开关，填写后不缓存', async () => {
+    const { page } = await setup(blank(1, '两个空的低信心答案', 2), { ...aiSettings, answerCache: true }, [], { answer: { answers: ['甲', '乙'], confidence: 0.2 } });
+    await logContains(page, '低于设置阈值');
+    assert.deepEqual(await page.locator('.TiMu textarea').evaluateAll(nodes => nodes.map(n => n.value)), ['', '']);
+    const toggle = page.locator('#cx-video-helper-host #fillLowConfidenceBlanks');
+    assert.equal(await toggle.isChecked(), false);
+    await toggle.check();
+    await logContains(page, '已填写（AI）');
+    assert.deepEqual(await page.locator('.TiMu textarea').evaluateAll(nodes => nodes.map(n => n.value)), ['甲', '乙']);
+    assert.equal(await page.evaluate(() => window.testStore['cxVideoHelper.settings.v1'].fillLowConfidenceBlanks), true);
+    assert.deepEqual(await page.evaluate(() => window.testStore['cxHelper.answers.v1']), []);
+    await toggle.uncheck();
+    assert.equal(await page.evaluate(() => window.testStore['cxVideoHelper.settings.v1'].fillLowConfidenceBlanks), false);
+    assert.deepEqual(await page.locator('.TiMu textarea').evaluateAll(nodes => nodes.map(n => n.value)), ['甲', '乙']);
+  });
+  await test('低信心填空：零信心可填写，缺项及其他题型仍拦截', async () => {
+    const config = { ...aiSettings, fillLowConfidenceBlanks: true, compareRandomConfidence: false, randomFallback: false };
+    const zero = await setup(blank(1, '零信心填空'), config, [], { answer: { answers: ['甲'], confidence: 0 } });
+    await logContains(zero.page, '已填写（AI）');
+    assert.equal(await zero.page.locator('.TiMu textarea').inputValue(), '甲');
+    const missing = await setup(blank(1, '缺少一个答案', 2), config, [], { answer: { answers: ['甲'], confidence: 0.2 } });
+    await logContains(missing.page, '答案数量与输入框数量不一致');
+    assert.deepEqual(await missing.page.locator('.TiMu textarea').evaluateAll(nodes => nodes.map(n => n.value)), ['', '']);
+    const essay = await setup(blank(1, '简答题仍遵守阈值', 1, '简答题'), config, [], { answer: { answers: ['甲'], confidence: 0.2 } });
+    await logContains(essay.page, '低于设置阈值');
+    assert.equal(await essay.page.locator('.TiMu textarea').inputValue(), '');
+    const single = await setup(choice(1, '单选仍遵守阈值', ['甲', '乙']), config, [], { answer: { answers: ['B'], confidence: 0.2 } });
+    await logContains(single.page, '低于设置阈值');
+    assert.equal(await single.page.locator('.TiMu input:checked').count(), 0);
+  });
+  await test('低信心填空：查询中关闭开关取消旧请求，后续低信心不填写', async () => {
+    const { page } = await setup(blank(1, '关闭填空策略'), { ...aiSettings, fillLowConfidenceBlanks: true }, [], { delay: 600, answer: { answers: ['甲'], confidence: 0.2 } });
+    await page.waitForFunction(() => window.aiRequests.length === 1);
+    await page.locator('#cx-video-helper-host #fillLowConfidenceBlanks').uncheck();
+    await logContains(page, '低于设置阈值');
+    assert.ok(await page.evaluate(() => window.apiAborts >= 1));
+    assert.equal(await page.locator('.TiMu textarea').inputValue(), '');
+  });
   await test('低信心 AI 高于单选及多选随机基准仍采用且不写缓存', async () => {
     for (const type of ['单选题', '多选题']) {
       const { page, context } = await setup(choice(1, '低信心策略', ['甲', '乙', '丙', '丁'], type), { ...aiSettings, compareRandomConfidence: true, confidence: 0.85, answerCache: true, randomFallback: true }, [], { answer: { answers: type === '单选题' ? ['B'] : ['AC'], confidence: 0.4 } });
@@ -1006,15 +1262,16 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
       await context.close();
     }
   });
-  await test('多选的本地题库及旧缓存单项答案同样不能填写', async () => {
+  await test('多选的本地题库及缓存单项答案无效时继续AI，AI仍单项则不填写', async () => {
     const question = '多选题库校验';
-    const cached = { key: JSON.stringify([question, 'multiple', [['A', '甲'], ['B', '乙'], ['C', '丙']], 0, []]), question, answers: ['A'], confidence: 1, source: 'AI' };
+    const cached = { schemaVersion: 2, scope: require('../tools/font-codec.cjs').sourceFingerprint(JSON.stringify([2, aiSettings.apiUrl, aiSettings.apiModel, [], false, '', true])), at: Date.now(),
+      key: JSON.stringify([question, 'multiple', [['A', '甲'], ['B', '乙'], ['C', '丙']], 0, []]), question, answers: ['A'], confidence: 1, source: 'AI' };
     for (const source of ['bank', 'cache']) {
       const { page, context } = await setup(choice(1, question, ['甲', '乙', '丙'], '多选题'), { ...aiSettings, answerCache: true },
         source === 'bank' ? [{ question, answers: ['A'] }] : [], {}, {}, { cache: source === 'cache' ? [cached] : [] });
       await logContains(page, '多选题至少需要两个不同选项');
       assert.equal(await page.locator('.TiMu input:checked').count(), 0);
-      assert.equal(await page.evaluate(() => window.aiRequests.length), 0);
+      assert.equal(await page.evaluate(() => window.aiRequests.length), 1);
       await context.close();
     }
   });
@@ -1740,10 +1997,18 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     await logContains(page, '恢复扫描课程任务');
     await page.waitForFunction(() => !document.querySelector('#v').paused);
   });
+  await require('./fixtures/audit-fixes.cjs')({test,setup,choice,blank,checked,logContains,aiSettings,assert});
+  await require('./fixtures/followup-fixes.cjs')({test,setup,choice,checked,logContains,aiSettings,assert});
+  await require('./fixtures/homework.cjs')({test,setup,choice,checked,logContains,aiSettings,assert});
+  await require('./fixtures/advanced-tasks.cjs')({test,setup,choice,blank,checked,logContains,aiSettings,assert});
+  await require('./fixtures/stability.cjs')({test,setup,choice,checked,logContains,aiSettings,assert});
   await browser.close();
   fs.mkdirSync(path.join(__dirname, '..', 'test-results'), { recursive: true });
-  const reportName = process.env.CX_TEST_FILTER ? 'report-filtered.json' : 'report.json';
-  fs.writeFileSync(path.join(__dirname, '..', 'test-results', reportName), JSON.stringify({ environment: 'Isolated headless browser; all page and API traffic simulated; no real accounts used', filter: process.env.CX_TEST_FILTER || null, results }, null, 2));
+  const reportName = process.env.CX_TEST_SHARD ? `report-shard-${process.env.CX_TEST_SHARD.replace('/', '-')}.json`
+    : process.env.CX_TEST_FILTER ? 'report-filtered.json' : 'report.json';
+  fs.writeFileSync(path.join(__dirname, '..', 'test-results', reportName), JSON.stringify({ environment: 'Isolated headless browser; all page and API traffic simulated; no real accounts used',
+    version: script.match(/@version\s+(\S+)/)?.[1], scriptSha256: require('node:crypto').createHash('sha256').update(script).digest('hex'),
+    scenarioCount:scenarioIndex,filter: process.env.CX_TEST_FILTER || null, shard: process.env.CX_TEST_SHARD || null, results }, null, 2));
   console.log(`\n${results.filter((r) => r.passed).length}/${results.length} scenarios passed`);
   if (results.some((r) => !r.passed)) process.exitCode = 1;
 })().catch((error) => { console.error(error); process.exitCode = 1; });

@@ -15,4 +15,4 @@ ${[
 ].map(([title, children], g) => `<h3 class="posCatalog_title">${title}</h3>${children.map((text, i) => `<div class="posCatalog_select${g === 0 && i === 1 ? ' posCatalog_active' : ''}${g === 2 && i === 2 ? ' locked' : ''}" id="cur${g + 1}${i + 1}">
 ${g === 0 && i === 0 ? '<span class="icon_Completed"></span>' : ''}${g === 2 && i === 2 ? '<span class="icon_lock"></span>' : ''}
 <span class="posCatalog_name" title="${text}" onclick="window.chapterClicks=(window.chapterClicks||[]);window.chapterClicks.push(this.parentElement.id);document.querySelectorAll('.posCatalog_active').forEach(n=>n.classList.remove('posCatalog_active'));this.parentElement.classList.add('posCatalog_active')">${text}</span></div>`).join('')}`).join('')}
-</div></aside>`;
+</div><div hidden><iframe title="笔记编辑器" src="about:blank"></iframe></div></aside>`;

@@ -1,0 +1,48 @@
+name: Build and release Learnova
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            pintia/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix pintia
+      - run: npm run build && npm run build --prefix pintia
+      - run: npm run check && npm run check --prefix pintia
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:update
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Learnova
+          path: dist/*
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate tag matches package version
+        run: node -e "if(process.env.GITHUB_REF_NAME!=='v'+require('./package.json').version)process.exit(1)"
+      - uses: actions/download-artifact@v4
+        with:
+          name: Learnova
+          path: dist
+      - name: Publish versioned assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "Learnova $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md --latest

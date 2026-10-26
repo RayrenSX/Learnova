@@ -1,0 +1,31 @@
+{
+  "name": "learnova-pintia",
+  "version": "0.1.2",
+  "private": true,
+  "description": "独立 Pintia 代码纠错与填写用户脚本",
+  "license": "MIT",
+  "scripts": {
+    "build": "node tools/build.cjs",
+    "check": "node --check Pintia代码助手.user.js",
+    "test": "node tests/run.cjs"
+  },
+  "devDependencies": {
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.6",
+    "esbuild": "^0.28.2",
+    "playwright": "^1.64.0"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-cpp": "^6.0.3",
+    "@codemirror/lang-go": "^6.0.1",
+    "@codemirror/lang-java": "^6.0.2",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/lang-rust": "^6.0.2",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/search": "^6.7.2",
+    "codemirror": "^6.0.2"
+  }
+}

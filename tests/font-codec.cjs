@@ -50,6 +50,19 @@ const md5 = require('blueimp-md5');
     assert.ok(result.decoded.startsWith('尊重'));
     assert.ok(result.original.startsWith('唂重'));
     assert.equal(result.clicked, true);
+    // 同一个真实字体字形放到私用区，也必须解码；未识别私用字形不能标为完整。
+    const puaFont = Buffer.from(font);
+    puaFont.writeUInt32BE(0xe001, raw.length + 28); puaFont.writeUInt32BE(0xe001, raw.length + 32);
+    await page.setContent(`<style>@font-face{font-family:cxsecret;src:url("data:font/ttf;base64,${puaFont.toString('base64')}")} .font-cxsecret{font-family:cxsecret}</style><section class="font-cxsecret" id="pua">\ue001</section>`);
+    await page.addScriptTag({ content: bundled.outputFiles[0].text });
+    const pua = await page.evaluate(() => {
+      const original = document.getElementById('pua'), clone = original.cloneNode(true);
+      return { complete: CXFontCodec.decodeClone(original, clone), text: clone.textContent };
+    });
+    assert.deepEqual(pua, { complete: true, text: '尊' });
+    await page.setContent('<section class="font-cxsecret" id="unknown-pua">\ue002</section>');
+    assert.equal(await page.evaluate(() => CXFontCodec.complete(document.getElementById('unknown-pua'))), false);
+    await page.setContent(`<style>@font-face{font-family:cxsecret;src:url("data:font/ttf;base64,${font.toString('base64')}")} .font-cxsecret{font-family:cxsecret}</style><section id="question"><span class="font-cxsecret">唂重</span></section>`);
     // An unrecognized real glyph must remain unresolved rather than becoming
     // a null character or being treated as correctly decoded text.
     await page.addScriptTag({ content: fs.readFileSync(path.join(__dirname, '../学习通学习助手.user.js'), 'utf8').match(/\/\/ FONT_CODEC_BEGIN([\s\S]*?)\/\/ FONT_CODEC_END/)[1] });

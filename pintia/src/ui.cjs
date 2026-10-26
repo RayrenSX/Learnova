@@ -1,0 +1,95 @@
+module.exports = `<style>
+  :host{color-scheme:light;font:13px/1.6 system-ui,"Microsoft YaHei",sans-serif;color:#203e51}*{box-sizing:border-box}
+  button,input,textarea{font:inherit}button{cursor:pointer;border:1px solid #d4e1e8;border-radius:8px;background:#fff;color:#305469;padding:7px 11px}button:hover{background:#edf5f9}button:disabled{opacity:.4;cursor:default}button.primary{background:#176783;border-color:#176783;color:#fff;font-weight:650}button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid #389abc;outline-offset:2px}
+  .panel{width:460px;max-width:calc(100vw - 16px);border:1px solid #cddde6;border-radius:14px;background:#f5f9fb;box-shadow:0 18px 58px #12374b30;overflow:hidden}
+  header{display:flex;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(115deg,#123f54,#176a83);color:#fff;padding:11px 14px;cursor:grab;touch-action:none;user-select:none}header.dragging{cursor:grabbing}header strong{font-size:15px}header small{font-size:10px;color:#bad8e4;margin-left:9px}header button{padding:3px 8px;background:#ffffff12;border-color:#ffffff35;color:#fff}
+  nav{display:flex;align-items:center;padding:0 14px;gap:20px;background:#fff;border-bottom:1px solid #dfE8ee}nav button{border:0;border-radius:0;background:transparent;padding:9px 2px;color:#6b8291}nav button[aria-selected=true]{color:#176783;font-weight:700;box-shadow:inset 0 -2px #176783}.nav-note{font-size:10px;color:#8b9da8;margin-left:auto}
+  .body{padding:12px 14px;max-height:min(calc(100vh - 230px),680px);min-height:180px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}h2,h3,p{margin:0}#problem-title{font-size:14px;font-weight:650;overflow-wrap:anywhere;margin-bottom:5px}.states{display:flex;align-items:center;flex-wrap:wrap;gap:5px;font-size:11px;color:#5e7c8d}.badge{padding:2px 7px;border-radius:5px;background:#e8f1f6;max-width:100%;overflow-wrap:anywhere}#feedback-status[data-error=true]{background:#fff0e4;color:#a25b21}
+  .status{font-size:12px;margin:10px 0;padding:8px 10px;background:#eaf3f7;border-radius:7px;overflow-wrap:anywhere}.status.error{background:#fff0e5;color:#97501c}.muted{font-size:11px;color:#718996}.empty{text-align:center;padding:30px 14px 36px;color:#78909d}.empty strong{display:block;color:#4f6f82;font-size:14px;margin-bottom:7px}.empty p{font-size:12px}.empty .symbol{width:38px;height:38px;display:grid;place-items:center;margin:0 auto 12px;border-radius:11px;background:#e6f0f5;color:#39768d;font:18px Consolas,monospace}
+  details{border-top:1px solid #dce7ed;margin-top:12px}summary{cursor:pointer;font-weight:550;padding:8px 0;font-size:12px;color:#5b7788}.context,pre{font:12px/1.65 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}.context{background:#fff;padding:10px;border:1px solid #dfe8ee;border-radius:7px;max-height:240px;overflow:auto}.detail-toolbar{display:flex;justify-content:flex-end;margin-top:5px}.link-button{border:0;background:transparent;padding:2px 3px;font-size:11px;color:#337b96}
+  .row{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}.row button{flex:1}.settings-card{padding:12px;background:#fff;border:1px solid #dce7ed;border-radius:10px;margin:0 0 12px}.settings-card h3{font-size:13px;margin-bottom:8px}.field-heading{display:flex;align-items:center;justify-content:space-between;gap:7px}.field-heading label{margin:0}label{display:block;margin:9px 0 5px;font-size:12px}label.check{display:flex;align-items:flex-start;gap:7px}input[type=checkbox]{margin-top:5px;accent-color:#176783}input:not([type=checkbox]),textarea{width:100%;padding:7px 9px;color:#203e51;background:#fbfdfe;border:1px solid #d5e2e9;border-radius:7px}textarea{resize:vertical;min-height:72px}textarea.code{font:12px/1.65 ui-monospace,Consolas,monospace;tab-size:4;white-space:pre}#feedback{min-height:110px}
+  #output>h3{font-size:14px;margin:12px 0 5px}#output p{white-space:pre-wrap;overflow-wrap:anywhere}#output ul{padding-left:20px;margin:8px 0}#output li{margin:4px 0;overflow-wrap:anywhere}.issue{background:#fff;padding:11px 12px;border:1px solid #e1e9ee;border-left:3px solid #dba258;border-radius:6px;margin:9px 0}.issue strong{display:block;font-size:12px;margin-bottom:4px}.issue p+p{margin-top:5px}.test{background:#fff;padding:10px;border:1px solid #dfe8ee;border-radius:7px;margin:8px 0}.test pre{margin:7px 0 0}.result-meta{display:flex;flex-wrap:wrap;gap:6px;color:#78909d;font-size:11px;margin:6px 0 10px}#fixed-code{min-height:210px;background:#fff}
+  footer{padding:10px 14px;border-top:1px solid #dce7ed;background:#fff}.primary-row{display:flex;gap:7px}#diagnose{flex:1;padding:9px 12px}.result-actions{display:flex;gap:7px;margin-bottom:8px}.result-actions button{flex:1;font-size:12px}.footnote{font-size:10px;color:#91a2ad;text-align:center;margin-top:6px}.chip{box-shadow:0 5px 24px #19344730;background:#176783;color:#fff;border:0;border-radius:24px;padding:10px 15px}[hidden]{display:none!important}@media(max-height:500px){.body{max-height:calc(100vh - 225px);min-height:80px}}@media(prefers-reduced-motion:no-preference){button{transition:background .12s}}
+  :host([data-docked=true]) .panel{width:100%;max-width:none;height:100%;border:0;border-radius:0;box-shadow:none;display:flex;flex-direction:column}
+  :host([data-docked=true]) header{padding:7px 12px;cursor:default;background:#fff;color:#244759;border-bottom:1px solid #dfE8ee} :host([data-docked=true]) header button{color:#617d8c;background:transparent;border-color:#dce7ed;font-size:10px}
+  :host([data-docked=true]) header small{display:none} :host([data-docked=true]) nav{padding:0 12px;gap:18px;flex:none}
+  .editor-workspace{display:flex;flex-direction:column;background:#fff;border-bottom:1px solid #dce7ed;min-height:180px;height:260px;flex:none}
+  .editor-toolbar{display:flex;align-items:center;gap:8px;padding:6px 12px;color:#6d8797;font-size:11px;border-bottom:1px solid #edf2f5}
+  .editor-toolbar strong{color:#315c72;font-size:11px;font-weight:550}.editor-toolbar span:last-child{margin-left:auto}.editor-frame{flex:1;min-height:0;overflow:hidden}#editor-sync{font-size:10px;color:#869da9}.editor-frame .cm-editor{height:100%}
+  #workspace-language{font:11px system-ui;color:#315c72;background:#fff;border:1px solid #d6e3ea;border-radius:5px;padding:3px 5px;max-width:140px;min-width:70px}#editor-fullscreen{margin-left:auto;font-size:10px;padding:2px 6px}.editor-workspace:fullscreen{height:100%!important;max-height:none!important;background:#fff}.editor-workspace:fullscreen .editor-toolbar{padding:10px 16px}
+  :host([data-docked=true]) .editor-workspace{min-height:0;max-height:none}
+  :host([data-docked=true]) .body{flex:1;min-height:100px;max-height:none;padding:10px 12px}
+  :host([data-docked=true]) footer{flex:none;padding:8px 12px}
+  :host([data-docked=true]) .footnote{display:none}
+  :host([data-docked=true]) #problem-title{display:none}
+  .feedback-log{white-space:pre-wrap;font:12px/1.7 Consolas,monospace;overflow-wrap:anywhere;margin:10px 0;background:#fff;border:1px solid #e0e8ee;border-radius:8px;padding:12px}
+  .test-controls{display:flex;align-items:center;gap:8px}.test-controls label{margin:0;flex:1}.test-controls button{font-size:11px}#test-input{font:12px/1.6 Consolas,monospace;min-height:72px;resize:vertical}#test-status{font-size:12px;color:#688594;margin:8px 0}
+  :host([data-docked=false]) .editor-workspace{min-height:0;flex-shrink:0}
+  :host([data-docked=false]) .body{max-height:min(calc(100vh - 445px),360px);min-height:100px}
+  :host([data-docked=false]) .panel{display:flex;flex-direction:column;height:min(820px,calc(100vh - 16px));max-height:calc(100vh - 16px)}
+  :host([data-docked=false]) .body{flex:1;min-height:0;max-height:none}
+  :host([data-docked=true]) .body{min-height:0}
+  #editor-splitter{position:relative;height:9px;flex:none;background:#f1f6f9;border-top:1px solid #e1e9ee;border-bottom:1px solid #e1e9ee;cursor:row-resize;touch-action:none;user-select:none;display:grid;place-items:center}
+  #editor-splitter::after{content:'';width:32px;height:3px;background:#b4c7d2;border-radius:4px}
+  #editor-splitter:hover,#editor-splitter.dragging{background:#dfeef5}#editor-splitter:focus-visible{outline:2px solid #389abc;outline-offset:-2px}
+  #editor-collapse{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:22px;height:20px;padding:0;border:0;border-radius:4px;background:transparent;color:#587888;font-size:14px;line-height:18px;z-index:1}
+  #editor-collapse:hover{background:#d5eaf2;color:#176783}#editor-collapse[aria-pressed=true]{color:#176783}
+  .font-controls{margin-left:auto;display:flex;align-items:center;gap:2px;flex:none}.font-controls button{font-size:11px;padding:2px 5px;border:0;background:transparent;color:#617d8d}
+  #editor-font-size{font:11px system-ui;color:#315c72;border:1px solid #d6e3ea;background:#fff;border-radius:4px;padding:2px;max-width:52px}#editor-fullscreen{margin-left:0}
+  .editor-toolbar{gap:5px;container-type:inline-size}@container(max-width:330px){#editor-sync{display:none}#workspace-language{max-width:105px}}
+  .editor-statusbar{display:flex;align-items:center;gap:7px;flex:none;min-height:27px;padding:3px 10px;border-top:1px solid #edf2f5;background:#f8fbfd;font-size:10px;color:#5f7d90}
+  #editor-position{flex:1;white-space:nowrap}.editor-tools{display:flex;gap:3px;align-items:center}.editor-tools button{padding:1px 5px;font-size:10px;border:0;background:transparent}.editor-tools button[aria-pressed=true]{background:#d7eaf6;color:#176783}
+  .primary-row{align-items:center}#run-test-action{flex:1;padding:8px 12px}#diagnose{flex:none;padding:5px 9px;font-size:11px;background:#f3f7fa;color:#41697e;border-color:#d6e2e9;font-weight:500}#diagnose:hover{background:#e3eff6}#cancel{font-size:11px;padding:5px 8px}
+  .test-grid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:10px;align-items:start}.test-card{min-width:0;border:1px solid #dce7ed;border-radius:8px;background:#fff;overflow:hidden}
+  .test-card-heading{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:6px 9px;background:#f7fafc;border-bottom:1px solid #e7eef3;font-size:11px;font-weight:600}.test-card-heading label{margin:0;font-size:11px}.test-card-heading button{font-size:10px;padding:1px 5px}
+  .test-output-stack{display:grid;gap:9px}#test-input{display:block;border:0;border-radius:0;background:#fff;min-height:104px;height:104px;max-height:260px;padding:8px 9px;outline-offset:-2px}
+  .test-value{font:12px/1.6 Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;padding:8px 9px;min-height:52px;max-height:200px;overflow:auto;tab-size:4}.test-value[data-empty=true]{font:11px/1.6 system-ui;color:#8a9eaa}
+  #test-status{font-size:11px;margin:0 0 8px;display:flex;align-items:center;gap:6px}#test-status[data-error=true]{color:#a45a26}#test-message{font-size:11px;margin:0 0 8px;padding:6px 9px}
+  .test-diagnostic{margin:0 0 10px;border-color:#e8cfba}.test-diagnostic .test-card-heading{background:#fff3e9;color:#96521f}.test-diagnostic .test-value{min-height:0;max-height:180px;color:#743e22}
+  #test-runtime{margin:10px 0 0}#test-full-feedback{margin-top:9px}#test-full-feedback summary{font-size:11px;padding:6px 0}#test-log{margin:0;font-size:11px;padding:9px;max-height:260px;overflow:auto}
+  @media(max-width:420px){.test-grid{gap:7px;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}.test-card-heading{padding:5px 7px}.editor-statusbar{padding:3px 6px;gap:3px}.editor-tools{gap:0}.editor-tools button{padding:1px 4px}}
+</style>
+<section class="panel" aria-label="Pintia 代码助手">
+  <header id="drag-handle" tabindex="0" role="group" aria-label="拖动助手窗口；也可用方向键移动"><div><strong>Learnova</strong><small>拖动移动</small></div><div><button id="float-mode" title="切换贴合网页或浮窗">浮窗</button><button id="collapse" title="显示原网页代码区" aria-label="收起助手">原网页</button></div></header>
+  <div id="editor-workspace" class="editor-workspace"><div class="editor-toolbar"><select id="workspace-language" aria-label="平台编程语言" hidden></select><strong id="editor-language">读取语言中</strong><span id="editor-sync">等待平台代码</span><button id="sync-now" class="link-button" hidden>同步到平台</button><div class="font-controls" aria-label="代码字号"><button id="font-smaller" aria-label="减小代码字号" title="减小字号">A−</button><select id="editor-font-size" aria-label="代码字号"></select><button id="font-larger" aria-label="增大代码字号" title="增大字号">A+</button></div><button id="editor-fullscreen" class="link-button" title="全屏代码编辑器">全屏</button></div><div id="workspace-editor" class="editor-frame" aria-label="代码输入区域" title="Tab 缩进 · Shift+Tab 取消缩进 · Ctrl+/ 注释 · Ctrl+Space 补全 · Ctrl+F 查找 · Ctrl+Z 撤销"></div><div class="editor-statusbar"><span id="editor-position">行 1，列 1</span><div class="editor-tools"><button id="editor-undo" title="撤销（Ctrl+Z）" aria-label="撤销编辑" disabled>↶</button><button id="editor-redo" title="重做（Ctrl+Y / Ctrl+Shift+Z）" aria-label="重做编辑" disabled>↷</button><button id="editor-search" title="查找 / 替换（Ctrl+F）">查找</button><button id="editor-wrap" title="切换代码自动折行" aria-pressed="false">折行</button></div></div></div>
+  <div id="editor-splitter" role="separator" tabindex="0" aria-label="调整代码区与下方内容的高度" aria-orientation="horizontal" aria-valuemin="15" aria-valuemax="100" aria-valuenow="50" title="拖动调整高度；方向键微调"><button id="editor-collapse" type="button" aria-label="收起下方区域" aria-pressed="false" title="收起下方区域">⌄</button></div>
+  <nav role="tablist" aria-label="助手页面"><button id="tab-test" role="tab" aria-controls="test-page" aria-selected="false" tabindex="-1">测试反馈</button><button id="tab-analysis" role="tab" aria-controls="analysis-page" aria-selected="true">AI 分析</button><button id="tab-settings" role="tab" aria-controls="settings-page" aria-selected="false" tabindex="-1">设置</button><span class="nav-note">仅测试，不提交</span></nav>
+  <div class="body" id="body">
+    <div id="test-page" role="tabpanel" aria-labelledby="tab-test" hidden>
+      <p id="test-status" role="status" aria-live="polite">运行测试，查看输出。</p><p id="test-message" class="status" role="status" aria-live="polite" hidden></p>
+      <section id="test-compile" class="test-card test-diagnostic" aria-label="编译器反馈" hidden><div id="test-compile-title" class="test-card-heading">编译错误</div><pre id="test-compile-log" class="test-value"></pre></section>
+      <div class="test-grid"><section class="test-card"><div class="test-card-heading"><label for="test-input">测试输入</label><button id="sample-input">用样例</button></div><textarea id="test-input" placeholder="留空使用首个输入样例" spellcheck="false"></textarea></section>
+        <div class="test-output-stack"><section class="test-card"><div class="test-card-heading">实际输出</div><pre id="test-stdout" class="test-value" data-empty="true">等待运行</pre></section><section class="test-card"><div class="test-card-heading">预期输出</div><pre id="test-expected" class="test-value" data-empty="true">运行样例后自动读取</pre></section></div>
+      </div>
+      <section id="test-runtime" class="test-card test-diagnostic" aria-label="运行错误信息" hidden><div class="test-card-heading">运行诊断</div><pre id="test-runtime-log" class="test-value"></pre></section>
+      <details id="test-full-feedback" hidden><summary>完整平台反馈</summary><pre id="test-log" class="feedback-log"></pre></details>
+    </div>
+    <div id="analysis-page" role="tabpanel" aria-labelledby="tab-analysis">
+      <h2 id="problem-title">正在识别当前题目…</h2>
+      <div class="states"><span id="language-status" class="badge">识别语言中</span><span id="code-status">读取代码中</span><span id="feedback-status" class="badge">未测试</span></div>
+      <p id="status" class="status" role="status" aria-live="polite">点击分析，自动运行测试并根据反馈定位错因。</p>
+      <section id="output" aria-label="分析结果"></section>
+      <div id="empty" class="empty"><div class="symbol">&lt;/&gt;</div><strong>找到代码为什么出错</strong><p>自动测试当前代码 → 读取反馈 → AI 分析</p></div>
+      <details id="feedback-details" hidden><summary>查看平台测试反馈</summary><pre id="feedback-preview" class="context"></pre></details>
+      <details id="context-details"><summary>当前题目与代码</summary><div id="context" class="context"></div><div class="detail-toolbar"><button id="read" class="link-button">重新读取</button></div></details>
+    </div>
+    <div id="settings-page" role="tabpanel" aria-labelledby="tab-settings" hidden>
+      <p id="settings-status" class="status" role="status" aria-live="polite">配置 AI 服务和填写策略。</p>
+      <section class="settings-card" id="configuration"><h3>AI 服务</h3><p class="muted">题目、代码和反馈会发送到此服务。</p>
+        <label for="api-url">接口地址</label><input id="api-url" type="url" autocomplete="off" placeholder="https://你的服务/v1">
+        <label for="api-model">模型</label><input id="api-model" autocomplete="off">
+        <label for="api-key">API 密钥（留空保留）</label><input id="api-key" type="password" autocomplete="new-password"><p id="key-state" class="muted"></p>
+        <div class="row"><button id="save">保存设置</button><button id="clear-key">清除密钥</button></div>
+      </section>
+      <section class="settings-card"><h3>填写策略</h3><label class="check"><input id="auto-fill" type="checkbox">分析完成后自动填写修正代码</label><p class="muted">默认关闭。填写后可恢复，不会提交答案。</p><label for="confidence">最低信心（0–1，模型自评）</label><input id="confidence" type="number" min="0" max="1" step="0.05"><p class="muted">修改阈值后点击上方“保存设置”。</p></section>
+      <section class="settings-card"><h3>本题补充</h3><p class="muted">自动读取不足时补充；切换题目后自动清空。</p>
+        <div class="field-heading"><label for="language">语言覆盖</label><span id="language-source" class="badge">自动识别</span></div><input id="language" autocomplete="off" placeholder="自动读取平台语言"><button id="language-auto" class="link-button" hidden>恢复自动识别</button>
+        <div class="field-heading"><label for="feedback">反馈补充</label><span id="feedback-source" class="badge">等待平台反馈</span></div><textarea id="feedback" placeholder="自动读取平台测试；可补充其他反馈"></textarea><p id="feedback-note" class="muted"></p><button id="feedback-auto" class="link-button" hidden>恢复自动读取</button>
+        <details id="manual"><summary>补充题目 / 粘贴代码</summary><label for="statement">完整题目（留空自动读取）</label><textarea id="statement"></textarea><label class="check"><input id="use-manual" type="checkbox">使用粘贴的代码分析</label><textarea id="manual-code" class="code" spellcheck="false"></textarea><p class="muted">粘贴代码需与平台代码一致才能自动测试。完整题目补充会替代自动读取的题干。</p></details>
+      </section>
+      <section class="settings-card"><h3>其他操作</h3><button id="generate">按题生成代码</button><p class="muted">用于空代码。生成时不执行原代码测试。</p></section>
+      <p class="muted">独立油猴存储；密钥不回显。切题自动刷新，已运行的平台测试无法撤回，取消后不再请求 AI 或填写。</p>
+    </div>
+  </div>
+  <footer id="footer"><div id="result-actions" class="result-actions" hidden><button id="fill" disabled>应用修正</button><button id="copy" disabled>复制代码</button><button id="undo" disabled>恢复原代码</button></div><div class="primary-row"><button id="run-test-action" class="primary">运行测试</button><button id="diagnose">AI 分析</button><button id="cancel" hidden disabled>取消</button></div><p class="footnote">测试不计分 · 始终由你提交答案</p></footer>
+</section><button id="expand" class="chip" hidden>Pintia 代码助手</button>`;

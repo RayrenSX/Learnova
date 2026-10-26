@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const net = require('node:net');
+const { createHash } = require('node:crypto');
+const script = fs.readFileSync(path.join(__dirname, '..', '学习通学习助手.user.js'), 'utf8');
 
 (async () => {
   const probe = net.createServer();
@@ -17,14 +19,32 @@ const net = require('node:net');
   else if (process.platform === 'win32') launch.channel = 'msedge';
   const browser = await chromium.launch(launch);
   const results = [];
+  const report = {
+    startedAt: new Date().toISOString(),
+    version: script.match(/@version\s+(\S+)/)?.[1],
+    scriptSha256: createHash('sha256').update(script).digest('hex'),
+    environment: 'Headed isolated browser, generated real WebM, actual minimized window; no live course or API',
+    results, passed: false,
+  };
+  let page;
+  function verifyScenario(scenario, before, after, verify) {
+    const result = { scenario, before, after, passed: false };
+    results.push(result);
+    try { verify(); result.passed = true; }
+    catch (error) { result.error = error.message; }
+  }
   try {
     // 默认连接会强制模拟焦点。以 noDefaults 连接临时浏览器的默认上下文，保留真实窗口可见性。
     const nativeBrowser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`, { noDefaults: true });
     const context = nativeBrowser.contexts()[0];
     await context.route('**/*', route => route.fulfill({ contentType: 'text/html', body:
       '<!doctype html><title>CX isolated playback verification</title><video id="video" width="640" height="360" muted controls></video>' }));
-    const page = await context.newPage();
+    page = await context.newPage();
     await page.goto('https://mooc1.chaoxing.com/mycourse/studentstudy');
+    const session = await context.newCDPSession(page);
+    const { windowId } = await session.send('Browser.getWindowForTarget');
+    await session.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'normal' } });
+    await page.bringToFront();
     await page.evaluate(async () => {
       const values = { 'cxVideoHelper.settings.v1': { enabled: false, autoNext: false, autoAnswer: false } };
       window.GM_getValue = (key, fallback) => values[key] ?? fallback;
@@ -63,31 +83,35 @@ const net = require('node:net');
         }
       }, true);
     });
-    await page.addScriptTag({ content: fs.readFileSync(path.join(__dirname, '..', '学习通学习助手.user.js'), 'utf8') });
+    // 视频生成期间用户可能切换窗口；先确认启动阶段确实在前台。
+    await session.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'normal' } });
+    await page.bringToFront();
+    await page.waitForFunction(() => !window.nativeHidden(), null, { timeout: 5000 });
+    await page.addScriptTag({ content: script });
     await page.locator('#cx-video-helper-host #toggle').click();
     await page.waitForFunction(() => !document.querySelector('video').paused && document.querySelector('video').currentTime > 0.2);
-    const session = await context.newCDPSession(page);
-    const { windowId } = await session.send('Browser.getWindowForTarget');
     const sample = () => page.evaluate(() => ({ ...window.samples, hidden: window.nativeHidden(),
       paused: document.querySelector('video').paused, time: document.querySelector('video').currentTime }));
     const before = await sample();
     await session.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'minimized' } });
     await page.waitForTimeout(5000);
     const minimized = await sample();
-    assert.equal(minimized.hidden, true, 'Window must really be hidden');
-    assert.equal(minimized.paused, false);
-    assert.ok(minimized.updates > before.updates + 3, 'Real video must continue advancing');
-    assert.ok(minimized.visibilityPauses > 0, 'Site pause listener must have run');
-    assert.equal(minimized.pauses, before.pauses, `Minimizing must not add pauses: ${JSON.stringify({ before, minimized })}`);
-    results.push({ scenario: 'real video in minimized window with early site pause listener', before, after: minimized });
+    verifyScenario('real video in minimized window with early site pause listener', before, minimized, () => {
+      assert.equal(minimized.hidden, true, 'Window must really be hidden');
+      assert.equal(minimized.paused, false);
+      assert.ok(minimized.updates > before.updates + 3, 'Real video must continue advancing');
+      assert.ok(minimized.visibilityPauses > 0, 'Site pause listener must have run');
+      assert.equal(minimized.pauses, before.pauses, 'Minimizing must not add pauses');
+    });
 
     await page.evaluate(() => window.nativePause.call(document.querySelector('video')));
     await page.waitForFunction(() => !document.querySelector('video').paused, null, { timeout: 2000 });
     await page.waitForTimeout(2500);
     const recovered = await sample();
-    assert.ok(recovered.updates > minimized.updates);
-    assert.equal(recovered.paused, false);
-    results.push({ scenario: 'cached native pause recovers while minimized', after: recovered });
+    verifyScenario('cached native pause recovers while minimized', minimized, recovered, () => {
+      assert.ok(recovered.updates > minimized.updates);
+      assert.equal(recovered.paused, false);
+    });
 
     await session.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'normal' } });
     const other = await context.newPage();
@@ -95,13 +119,29 @@ const net = require('node:net');
     await other.bringToFront();
     await page.waitForTimeout(3500);
     const switched = await sample();
-    assert.equal(switched.hidden, true);
-    assert.equal(switched.paused, false);
-    assert.ok(switched.updates > recovered.updates);
-    results.push({ scenario: 'real video continues after switching tabs', after: switched });
-    console.log(JSON.stringify(results, null, 2));
+    verifyScenario('real video continues after switching tabs', recovered, switched, () => {
+      assert.equal(switched.hidden, true);
+      assert.equal(switched.paused, false);
+      assert.ok(switched.updates > recovered.updates);
+    });
+    report.passed = results.length === 3 && results.every(result => result.passed);
+    if (!report.passed) throw new Error('Real playback verification failed; inspect real-playback.json');
+  } catch (error) {
+    report.failure = error.message;
+    if (page && !page.isClosed()) {
+      try {
+        report.failureSnapshot = await page.evaluate(() => ({ samples: window.samples,
+          hidden: window.nativeHidden?.(), media: [...document.querySelectorAll('video')].map(media => ({
+            paused: media.paused, time: media.currentTime, readyState: media.readyState })),
+          log: document.querySelector('#cx-video-helper-host #logs')?.textContent }));
+      } catch { /* Preserve the original failure even if the page is unavailable. */ }
+    }
+    throw error;
+  } finally {
+    report.completedAt = new Date().toISOString();
     fs.mkdirSync(path.join(__dirname, '..', 'test-results'), { recursive: true });
-    fs.writeFileSync(path.join(__dirname, '..', 'test-results', 'real-playback.json'), JSON.stringify({
-      environment: 'Headed isolated browser, generated real WebM, actual minimized window; no live course or API', results }, null, 2));
-  } finally { await browser.close(); }
+    fs.writeFileSync(path.join(__dirname, '..', 'test-results', 'real-playback.json'), JSON.stringify(report, null, 2));
+    console.log(JSON.stringify(report, null, 2));
+    await browser.close();
+  }
 })().catch(error => { console.error(error); process.exitCode = 1; });
