@@ -2,7 +2,7 @@
 
 # Learnova
 
-**学习通与 Pintia 的学习工作台 · 当前版本 0.1.6**
+**学习通与 Pintia 的学习工作台 · 当前版本 0.1.7**
 
 [![Release](https://img.shields.io/github/v/release/RayrenSX/Learnova?label=release)](https://github.com/RayrenSX/Learnova/releases/latest)
 [![Build](https://github.com/RayrenSX/Learnova/actions/workflows/release.yml/badge.svg)](https://github.com/RayrenSX/Learnova/actions/workflows/release.yml)

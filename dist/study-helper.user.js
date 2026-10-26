@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova
 // @namespace    local.xuexitong.helper
-// @version      0.1.6
+// @version      0.1.7
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @updateURL    https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.meta.js
@@ -46,7 +46,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.6",
+        version: "0.1.7",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -2482,11 +2482,8 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
     const rows=[...doc.querySelectorAll(selector)].filter(row=>!row.parentElement.closest(selector));
     if(!rows.length || doc.querySelector('.catalog-loading, [data-catalog-loading="true"], .catalog-load-more, [data-catalog-has-more="true"]'))return '';
     if(new Set(rows.map(row=>row.id)).size!==rows.length || !rows.every(row=>{
-      const counts=[row.querySelector('.catalog_points_yi')?.textContent.trim(),...row.querySelectorAll('input.knowledgeJobCount, input[name="notFinishJobCount"]')].map(value=>typeof value==='string'?value:value?.value).filter(value=>value!==undefined);
-      if(counts.some(value=>/^\d+$/.test(value)&&Number(value)>0))return false;
-      const marked=Boolean(row.querySelector('.icon_Completed, .icon_yiwanc'));
-      if(row.matches('.locked,[aria-disabled="true"]')||row.querySelector('.icon_lock,.catalog_lock'))return marked;
-      return marked||counts.length>0&&counts.every(value=>/^0$/.test(value));
+      if(row.matches('.locked,[aria-disabled="true"]')||row.querySelector('.icon_lock,.catalog_lock'))return Boolean(row.querySelector('.icon_Completed, .icon_yiwanc'))&&catalogRowCompleted(row);
+      return catalogRowCompleted(row);
     }))return '';
     return currentQueueCourse()?.id+':'+rows.map(row=>row.id).join('|');
   }
@@ -2887,7 +2884,15 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
       || new URL(location.href).searchParams.get('chapterId') || location.href;
   }
   function chapterCompleted() {
-    return Boolean(document.querySelector('.posCatalog_active .icon_Completed'));
+    return catalogRowCompleted(document.querySelector('.posCatalog_active, .chapter_active'));
+  }
+  function catalogRowCompleted(row) {
+    if(!row)return false;
+    const counters=[...row.querySelectorAll('.catalog_points_yi, input.knowledgeJobCount, input[name="notFinishJobCount"]')]
+      .map(node=>String(node.value??node.textContent).trim());
+    if(counters.some(value=>/^\d+$/.test(value)&&Number(value)>0))return false;
+    return Boolean(row.querySelector('.icon_Completed, .icon_yiwanc'))
+      || counters.length>0&&counters.every(value=>value==='0');
   }
   function cardTabs() {
     return [...document.querySelectorAll('li[cardid][id^="dct"]')].filter(visible);
@@ -2911,8 +2916,7 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
     }
     const chapter = [...document.querySelectorAll('.chapter_item[id^="cur"][onclick], .chapter_item[onclick*="toOld"]')].find(item => {
       if (!visible(item) || item.matches('[aria-disabled="true"], .locked') || item.querySelector('.icon_lock, .catalog_lock')) return false;
-      const pending = item.querySelector('.catalog_points_yi, input.knowledgeJobCount');
-      return !settings.skipFinished || (pending ? Number(pending.value ?? pending.textContent.trim()) > 0 : !item.querySelector('.icon_Completed,.icon_yiwanc'));
+      return !settings.skipFinished || !catalogRowCompleted(item);
     });
     return chapter ? { element: chapter, description: `进入未完成章节：${chapter.title || chapter.textContent.trim()}` } : null;
   }
@@ -2943,7 +2947,7 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
     const index = chapters.findIndex((chapter) => chapter.classList.contains('posCatalog_active'));
     if (index >= 0) {
       const next = chapters.slice(index + 1).find((chapter) => !chapter.matches('.locked, [aria-disabled="true"]')
-        && !chapter.querySelector('.icon_lock, .icon_Lock, .catalog_lock') && (!settings.skipFinished || !chapter.querySelector('.icon_Completed')));
+        && !chapter.querySelector('.icon_lock, .icon_Lock, .catalog_lock') && (!settings.skipFinished || !catalogRowCompleted(chapter)));
       const element = next?.querySelector('.posCatalog_name[onclick]');
       if (element) return { element, description: `进入下一章节：${element.title || element.textContent.trim()}` };
       return null;
@@ -3550,8 +3554,10 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
             <label class="field"><span>OpenAI 兼容接口地址</span><input id="apiUrl" placeholder="https://服务商域名/v1/chat/completions" type="url"></label>
             <label class="field"><span>模型名称</span><input id="apiModel" placeholder="填写服务商提供的模型名"></label>
             <div class="row"><label for="multiModelEnabled">多模型严格多数投票</label><input type="checkbox" id="multiModelEnabled"></div>
-            <label class="field"><span>投票模型（2–5 个，每行一个，使用当前接口）</span><textarea id="voteModels" rows="3"></textarea></label>
-            <p class="hint">每个模型独立查询；超过配置模型总数的一半且答案可匹配才采用。失败/无效响应也计入总数，分歧不随机替代。投票会增加请求次数。</p>
+            <div id="voteModelSettings" hidden>
+              <label class="field"><span>投票模型（2–5 个，每行一个，使用当前接口）</span><textarea id="voteModels" rows="3"></textarea></label>
+              <p class="hint">每个模型独立查询；超过配置模型总数的一半且答案可匹配才采用。失败/无效响应也计入总数，分歧不随机替代。投票会增加请求次数。</p>
+            </div>
             <label class="field"><span>API 密钥</span><input id="apiKeyInput" type="password" autocomplete="new-password" spellcheck="false" placeholder="粘贴密钥，留空保留已保存的密钥"></label>
             <p id="apiKeyInfo" class="hint"></p>
             <button id="clearApiKey" class="small">清除密钥</button>
@@ -3672,9 +3678,16 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
     refs.discussionPrompt.value = String(settings.discussionPrompt || '');
     refs.discussionPrompt.addEventListener('change', () => { settings.discussionPrompt = refs.discussionPrompt.value.slice(0, 2000); invalidateAnswers(); writeStore(KEY, settings); log('讨论草稿要求已保存'); });
     refs.multiModelEnabled.checked = Boolean(settings.multiModelEnabled); refs.voteModels.value = String(settings.voteModels || '');
+    const syncVoteModelSettings = () => {
+      shadow.getElementById('voteModelSettings').hidden = !refs.multiModelEnabled.checked;
+      refs.multiModelEnabled.setAttribute('aria-expanded',String(refs.multiModelEnabled.checked));
+    };
+    refs.multiModelEnabled.setAttribute('aria-controls','voteModelSettings');
+    syncVoteModelSettings();
     refs.fuzzyMatching.checked = Boolean(settings.fuzzyMatching);
     refs.fuzzyMatching.onchange = () => { settings.fuzzyMatching=refs.fuzzyMatching.checked; invalidateAnswers(); writeStore(KEY,settings); };
     for (const id of ['multiModelEnabled','voteModels']) refs[id].addEventListener('change', () => {
+      syncVoteModelSettings();
       settings.multiModelEnabled = refs.multiModelEnabled.checked; settings.voteModels = refs.voteModels.value.slice(0,2000);
       invalidateAnswers(); writeStore(KEY,settings); refs.apiFeedback.textContent = '投票设置已保存';
     });
@@ -4001,14 +4014,13 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
         if (seen.has(row.id)) return []; seen.add(row.id);
         const name = row.querySelector('.posCatalog_name, .chapter_name, .catalog_name');
         const action = row.querySelector('.posCatalog_name[onclick], a[href], [data-action="chapter"]') || (row.matches('[onclick], a[href], [role="button"]') ? row : null);
-        const copy = row.cloneNode(true); copy.querySelectorAll('.catalog_points_yi, .icon_Completed, .icon_lock, .catalog_lock').forEach(node => node.remove());
+        const copy = row.cloneNode(true); copy.querySelectorAll('.catalog_points_yi, .icon_Completed, .icon_yiwanc, .icon_lock, .catalog_lock').forEach(node => node.remove());
         const title = normalize(name?.title || row.title || name?.textContent || copy.textContent) || `第 ${index + 1} 节`;
         const heading = headings.filter(node => node.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).at(-1);
         const group = normalize(heading?.textContent) || (/^(\d+)[.．]/.exec(title)?.[1] ? `第 ${/^(\d+)[.．]/.exec(title)[1]} 章` : '课程章节');
-        const remaining = row.querySelector('.catalog_points_yi');
         return [{ id: row.id, title, group, row, action,
           active: row.matches('.posCatalog_active, .chapter_active, [aria-current="true"], [aria-current="page"]'),
-          done: Boolean(row.querySelector('.icon_Completed')) || Boolean(remaining && /^0$/.test(remaining.textContent.trim())),
+          done: catalogRowCompleted(row),
           locked: !action || row.matches('.locked, [aria-disabled="true"]') || Boolean(row.querySelector('.icon_lock, .icon_Lock, .catalog_lock')) || Boolean(action?.matches('[disabled], [aria-disabled="true"]')) }];
       });
     };
@@ -35323,7 +35335,7 @@ ${example.output}`);
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.6",
+        version: "0.1.7",
         private: true,
         description: "学习通播放、阅读与答题和 Pintia 代码工作台合并用户脚本，按网站自动加载",
         main: "学习助手完整版.user.js",

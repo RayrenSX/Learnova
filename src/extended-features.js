@@ -229,11 +229,8 @@
     const rows=[...doc.querySelectorAll(selector)].filter(row=>!row.parentElement.closest(selector));
     if(!rows.length || doc.querySelector('.catalog-loading, [data-catalog-loading="true"], .catalog-load-more, [data-catalog-has-more="true"]'))return '';
     if(new Set(rows.map(row=>row.id)).size!==rows.length || !rows.every(row=>{
-      const counts=[row.querySelector('.catalog_points_yi')?.textContent.trim(),...row.querySelectorAll('input.knowledgeJobCount, input[name="notFinishJobCount"]')].map(value=>typeof value==='string'?value:value?.value).filter(value=>value!==undefined);
-      if(counts.some(value=>/^\d+$/.test(value)&&Number(value)>0))return false;
-      const marked=Boolean(row.querySelector('.icon_Completed, .icon_yiwanc'));
-      if(row.matches('.locked,[aria-disabled="true"]')||row.querySelector('.icon_lock,.catalog_lock'))return marked;
-      return marked||counts.length>0&&counts.every(value=>/^0$/.test(value));
+      if(row.matches('.locked,[aria-disabled="true"]')||row.querySelector('.icon_lock,.catalog_lock'))return Boolean(row.querySelector('.icon_Completed, .icon_yiwanc'))&&catalogRowCompleted(row);
+      return catalogRowCompleted(row);
     }))return '';
     return currentQueueCourse()?.id+':'+rows.map(row=>row.id).join('|');
   }

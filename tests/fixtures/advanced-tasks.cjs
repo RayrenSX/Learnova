@@ -1,4 +1,16 @@
 module.exports = async ({test,setup,choice,blank,checked,logContains,aiSettings,assert}) => {
+  await test('多模型设置：开启后显示投票模型，关闭隐藏并保留配置',async()=>{
+    const prefix='#cx-video-helper-host ';
+    const {page}=await setup('',{multiModelEnabled:false,voteModels:'model-a\nmodel-b'},[],{}, {},{noStart:true});
+    await page.locator(prefix+'#tab-sources').click();await page.locator(prefix+'#apiSettings > summary').click();
+    assert.equal(await page.locator(prefix+'#voteModels').isVisible(),false);
+    await page.locator(prefix+'#multiModelEnabled').check();assert.equal(await page.locator(prefix+'#voteModels').isVisible(),true);
+    assert.equal(await page.locator(prefix+'#voteModels').inputValue(),'model-a\nmodel-b');
+    await page.locator(prefix+'#multiModelEnabled').uncheck();assert.equal(await page.locator(prefix+'#voteModelSettings').isVisible(),false);
+    await page.locator(prefix+'#multiModelEnabled').check();assert.equal(await page.locator(prefix+'#voteModels').inputValue(),'model-a\nmodel-b');
+    const enabled=await setup('',{multiModelEnabled:true,voteModels:'one\ntwo'},[],{}, {},{noStart:true});
+    await enabled.page.locator(prefix+'#tab-sources').click();await enabled.page.locator(prefix+'#apiSettings > summary').click();assert.equal(await enabled.page.locator(prefix+'#voteModels').isVisible(),true);
+  });
   const codeQuestion = (id=1) => `<div class="questionLi singleQuesId" id="question${id}" typeName="程序题"><h3 class="mark_name">编程任务 ${id}</h3><p>输入整数，输出相反数。使用 C 语言。</p><input type="hidden" id="answertype${id}" value="17"><textarea hidden class="code-editor"></textarea><div class="CodeMirror" style="min-height:50px" tabindex="0"></div><input type="hidden" id="answer${id}"><a id="runBtn" onclick="window.ran=(window.ran||0)+1">运行</a></div>`;
   const cm = `<script>document.querySelectorAll('.CodeMirror').forEach(e=>{let value='';let revision=0; e.CodeMirror={getValue:()=>value,getOption:key=>key==='readOnly'?false:'text/x-c',doc:{history:{done:[]}},setValue(v){value=v;this.doc.history.done.push(++revision);e.previousElementSibling.value=v;e.parentElement.querySelector('input[id^=answer]:not([id^=answertype])').value=v;},save(){e.previousElementSibling.value=value;}};});</script>`;
   const draft = {text:'int main(void) { return 0; }',confidence:1};

@@ -1,3 +1,8 @@
+Learnova 0.1.7
+
+- Fix course catalog completion detection for the platform's newer `icon_yiwanc` green-check marker and zero remaining-task counters.
+- Show vote-model configuration only while strict multi-model voting is enabled; preserve saved model names when hidden.
+
 Learnova 0.1.6
 
 - Use the 1024×1024 icon source for both `@icon` and `@icon64`. Script-site thumbnails may still be limited by the hosting platform's fixed image size.

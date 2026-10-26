@@ -3,6 +3,15 @@ module.exports=async({test,setup,assert})=>{
   const h='#cx-video-helper-host ',key='cxHelper.courseQueue.v1';
   const item=(id,name,extra={})=>({url:`https://mooc1.chaoxing.com/mycourse/studentstudy?courseid=${id}&clazzid=9`,name,selected:true,done:false,...extra});
   const open=async page=>{await page.locator(h+'#tab-home').click();await page.locator(h+'#courseQueueSection > summary').click();};
+  await test('目录完成状态：新版绿勾与零任务点正确统计，未完成筛选同步更新',async()=>{
+    const body='<h3 class="chapter_title">第一章</h3>'+Array.from({length:3},(_,i)=>`<div class="chapter_item" id="cur${i}" onclick="window.chapterClicks=(window.chapterClicks||0)+1" title="章节${i}"><div class="catalog_name">章节${i}</div>${i===0?'<div class="catalog_state icon_yiwanc"><span class="bntHoverTips">已完成</span></div>':i===1?'<input class="knowledgeJobCount" value="0">':'<input class="knowledgeJobCount" value="2">'}</div>`).join('');
+    const {page}=await setup(body,{skipFinished:true},[],{}, {},{noStart:true,path:'/mooc2-ans/mycourse/studentcourse?courseid=1&clazzid=9'});
+    await page.locator(h+'#tab-course').click();assert.ok((await page.locator(h+'#courseProgressText').textContent()).includes('2 / 3'));
+    await page.locator(h+'#pendingChapters').click();assert.equal(await page.locator(h+'.chapter-link').count(),1);
+    await page.evaluate(()=>{const row=document.getElementById('cur2');row.querySelector('input').value='0';row.insertAdjacentHTML('beforeend','<div class="catalog_state icon_yiwanc"></div>');});
+    await page.waitForFunction(()=>document.getElementById('cx-video-helper-host').shadowRoot.getElementById('courseProgressText').textContent.includes('3 / 3'));
+    assert.equal(await page.locator(h+'.chapter-link').count(),0);
+  });
   await test('页面分区：空间页用队列替换目录，隐藏播放控制及无关入口',async()=>{
     for(const url of ['https://i.chaoxing.com/base','https://i.mooc.chaoxing.com/space/index','https://mooc2-ans.chaoxing.com/visit/interaction']){
       const {page,errors}=await setup('',{uiTab:'course'},[],{}, {},{noStart:true,url});
