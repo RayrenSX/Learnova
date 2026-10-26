@@ -17,20 +17,22 @@ for (const name of ['study-helper', 'pintia-helper']) {
   assert.ok(meta.includes(`https://github.com/RayrenSX/Learnova/releases/latest/download/${name}.meta.js`));
 }
 const code = buildSync({entryPoints:['src/update.cjs'], bundle:true, write:false, platform:'browser', format:'iife', globalName:'StudyHelperUpdate'}).outputFiles[0].text;
+const gfCode = buildSync({entryPoints:['src/update.cjs'], bundle:true, write:false, platform:'browser', format:'iife', globalName:'StudyHelperUpdate', define:{LEARNOVA_DISTRIBUTION:JSON.stringify('greasyfork')}}).outputFiles[0].text;
 (async () => {
   const browser = await chromium.launch(process.platform === 'win32' ? {channel:'msedge'} : {});
   try {
     const page = await browser.newPage();
     const nextVersion = VERSION.replace(/\d+$/, value => String(Number(value) + 1));
-    async function setup(response, standalone = false, store = {}) {
+    async function setup(response, standalone = false, store = {}, greasyFork = false, nativeInfo = true) {
       if (response && typeof response === 'object') response = {...response, responseText: response.responseText.replace('0.1.3', nextVersion).replace('0.1.2', VERSION)};
       await page.setContent('<div id="host"></div>');
-      await page.evaluate(({code, response, standalone, store}) => {
+      await page.evaluate(({code, response, standalone, store, nativeInfo}) => {
         window.values = store; window.notifications = []; window.requests = [];
         window.GM_getValue = (key, fallback) => window.values[key] ?? fallback;
         window.GM_setValue = (key, value) => { window.values[key] = value; };
         window.GM_notification = options => window.notifications.push(options);
         window.GM_registerMenuCommand = () => {};
+        window.GM_info = nativeInfo ? {script:{downloadURL:'https://update.greasyfork.org/scripts/123456/Learnova.user.js'}} : {};
         window.GM_xmlhttpRequest = options => {
           window.requests.push(options.url);
           queueMicrotask(() => response === 'timeout' ? options.ontimeout() : options.onload(response));
@@ -40,7 +42,7 @@ const code = buildSync({entryPoints:['src/update.cjs'], bundle:true, write:false
         root.innerHTML = '<header><strong>Learnova</strong><button>−</button></header>';
         StudyHelperUpdate.mount(root, standalone);
         StudyHelperUpdate.mount(root, standalone);
-      }, {code, response, standalone, store});
+      }, {code:greasyFork ? gfCode : code, response, standalone, store, nativeInfo});
       await page.waitForTimeout(20);
     }
     await setup({status:200, responseText:'// @version 0.1.3'});
@@ -69,6 +71,21 @@ const code = buildSync({entryPoints:['src/update.cjs'], bundle:true, write:false
       assert.match(await page.locator('[role=status]').innerText(), /重试/);
       assert.equal(await page.locator('a').count(), 0);
     }
+    await setup({status:200,responseText:'// @version 0.1.3'}, false, {}, true);
+    assert.equal(await page.locator('a').getAttribute('href'), 'https://update.greasyfork.org/scripts/123456/Learnova.user.js');
+    assert.match(await page.evaluate(() => requests[0]), /^https:\/\/update\.greasyfork\.org\/scripts\/123456\/Learnova\.meta\.js\?/);
+    const gfCached = await page.evaluate(() => values);
+    gfCached['study-helper.update.greasyfork.study-helper.checked'] = Date.now() - 12 * 60 * 60 * 1000;
+    await setup({status:200,responseText:'// @version 0.1.3'}, false, gfCached, true);
+    await page.locator('[data-study-update]').click();
+    assert.equal(await page.evaluate(() => requests.length), 0, 'Greasy Fork checks at most once per 24h, including manual checks');
+    gfCached['study-helper.update.greasyfork.study-helper.checked'] = Date.now() - 25 * 60 * 60 * 1000;
+    await setup({status:200,responseText:'// @version 0.1.3'}, false, gfCached, true);
+    assert.equal(await page.evaluate(() => requests.length), 1);
+    await setup({status:200,responseText:'// @version 0.1.3'}, false, {}, true, false);
+    await page.locator('[data-study-update]').click();
+    assert.equal(await page.evaluate(() => requests.length), 0);
+    assert.match(await page.locator('[role=status]').innerText(), /脚本管理器检查/);
     console.log('PASS update comparison, metadata, both install links, duplicate mount, cache, notification deduplication, manual check, malformed response and timeout');
   } finally { await browser.close(); }
 })().catch(error => {console.error(error); process.exitCode = 1;});

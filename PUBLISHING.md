@@ -1,37 +1,66 @@
-# Learnova publishing
+# Publishing Learnova
 
-The root package.json is the build version source. Keep pintia/package.json and both lockfile root versions in sync when releasing.
+All editions currently use **0.1.2**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
 
-GitHub release v0.1.2: https://github.com/RayrenSX/Learnova/releases/tag/v0.1.2
+## Release process
 
-The initial tagged build and release workflow completed successfully. All four release assets were verified through anonymous downloads with version 0.1.2.
+1. Increase the version and update `RELEASE_NOTES.md`, the README version labels, and platform descriptions under `docs/`.
+2. Run:
 
-1. Increase the version (for example, 0.1.2 → 0.1.3) and update RELEASE_NOTES.md.
-2. Run `npm ci`, `npm ci --prefix pintia`, `npm run build`, `npm run build --prefix pintia`, `npm run check`, `npm run check --prefix pintia`, and `npm run test:update`.
-3. Commit the changes, push main, then push the matching tag (for example `git tag v0.1.3` and `git push origin v0.1.3`).
-4. GitHub Actions builds both editions, checks metadata and update behavior, and publishes four release assets. A tag that differs from package.json is rejected. A main branch push builds and checks without publishing.
+   ```sh
+   npm ci
+   npm ci --prefix pintia
+   npm run build
+   npm run build --prefix pintia
+   npm run build:greasyfork
+   npm run check
+   npm run check --prefix pintia
+   npm run test:update
+   npm run test:distribution
+   ```
 
-Stable installation and metadata URLs:
+3. Commit and push `main`, then push the matching tag, for example `v0.1.3`.
+4. GitHub Actions builds all editions, verifies syntax, update behavior and distribution limits, and publishes the release assets. A tag that differs from the package version is rejected. Main branch pushes build without publishing.
+5. Confirm that the latest release downloads contain the intended version. Check each script site's source synchronization status and publicly accessible installation link.
 
-- https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.user.js
-- https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.meta.js
-- https://github.com/RayrenSX/Learnova/releases/latest/download/pintia-helper.user.js
-- https://github.com/RayrenSX/Learnova/releases/latest/download/pintia-helper.meta.js
+The initial [v0.1.2 release](https://github.com/RayrenSX/Learnova/releases/tag/v0.1.2) and its automated build passed. Its GitHub installation and metadata URLs were verified through anonymous downloads. The Greasy Fork editions were added during initial platform publication and are built by subsequent tagged releases too.
 
-## Greasy Fork and ScriptCat
+## GitHub assets
 
-ScriptCat combined-edition listing (0.1.2): https://scriptcat.org/zh-CN/script-show-page/8739
+Base URL: `https://github.com/RayrenSX/Learnova/releases/latest/download/`.
 
-ScriptCat install URL: https://scriptcat.org/scripts/code/8739/Learnova.user.js
+| Edition | Installed script | Metadata |
+| --- | --- | --- |
+| Combined | `study-helper.user.js` | `study-helper.meta.js` |
+| Pintia standalone | `pintia-helper.user.js` | `pintia-helper.meta.js` |
+| Greasy Fork Chaoxing source | `learnova-chaoxing.user.js` | `learnova-chaoxing.meta.js` |
+| Greasy Fork Pintia source | `learnova-pintia.user.js` | `learnova-pintia.meta.js` |
 
-The initial ScriptCat version has been uploaded and its listing shows version 0.1.2. A direct anonymous request to its installation URL currently returns HTTP 404 with “脚本不存在”; installation availability still needs confirmation. Automatic site synchronization has not yet been configured; the uploaded script metadata points installed clients to the GitHub release assets. Use the verified GitHub installation URL while the ScriptCat download is unavailable. Greasy Fork publication is pending email confirmation; 2FA and an external login are enabled.
+Local Greasy Fork files are under `dist/greasyfork/`; release asset names are flat. The initial name and version reset requires manual installation for older 3.x / 1.x users, followed by disabling the old scripts.
 
-Publish the combined `dist/study-helper.user.js` as Learnova. The optional Pintia-only edition is `dist/pintia-helper.user.js`, named Learnova for Pintia. The license is MIT; source and issue links are https://github.com/RayrenSX/Learnova.
+## Greasy Fork
 
-For the first publication, sign in to each site and create the listing. Use the description below. If the editor offers URL import and automatic synchronization, set the combined .user.js URL above as its source. Use the Pintia URL for the independent edition. Confirm site validation and synchronization results before treating the listing as live. Record the resulting listing URLs here after publication. A GitHub release does not create or synchronize a listing by itself.
+| Edition | Listing | Source for automatic syncing | Additional info source |
+| --- | --- | --- | --- |
+| Chaoxing | [602230](https://greasyfork.org/zh-CN/scripts/602230-learnova-for-chaoxing) | `https://github.com/RayrenSX/Learnova/releases/latest/download/learnova-chaoxing.user.js` | `https://raw.githubusercontent.com/RayrenSX/Learnova/main/docs/greasyfork-chaoxing.md` |
+| Pintia | [602231](https://greasyfork.org/zh-CN/scripts/602231-learnova-for-pintia) | `https://github.com/RayrenSX/Learnova/releases/latest/download/learnova-pintia.user.js` | `https://raw.githubusercontent.com/RayrenSX/Learnova/main/docs/greasyfork-pintia.md` |
 
-Listing description:
+Both listings were created at version 0.1.2. Use each listing's Admin → Source Syncing settings and select Automatic; additional info uses Markdown. Verify the first sync result after saving.
 
-Learnova brings a course workspace to Chaoxing and a code workspace to Pintia. It includes course navigation, playback and reading tools, question-bank and configurable AI assistance, and code editing, testing, diagnosis and filling for Pintia. API keys and question-bank settings are configured by the user. The header shows the installed version and offers update checks with a visible install link when a newer release is available. Install the combined edition or the Pintia-only edition, and disable older editions to avoid duplicate panels. Source is available under the MIT license.
+Greasy Fork requires readable, non-minified code below 2 MB. The build separates the two sites, retains source and license comments, removes GitHub update/download metadata, and uses Greasy Fork's native installed update URLs. In-script update checks, including manual checks, are throttled to one per 24 hours. When native metadata is unavailable, the version button asks the user to check through the manager.
 
-The initial 0.1.2 release requires manual installation for users migrating from older 3.x / 1.x versions because the project name and version scheme changed.
+Keep these editions on the Greasy Fork update channel. Platform descriptions must describe the uploaded edition and should not tell users to install an alternate hosted copy instead.
+
+## ScriptCat
+
+Combined listing: [8739](https://scriptcat.org/zh-CN/script-show-page/8739).
+
+The version 0.1.2 upload exists, but the management page says it is under review and ordinary users cannot access it yet. Its public installation link returns HTTP 404. Do not create duplicate submissions.
+
+Intended source synchronization:
+
+- Script: `https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.user.js`
+- Description: `https://raw.githubusercontent.com/RayrenSX/Learnova/main/README.md`
+- Mode: Automatic.
+
+The synchronization form currently fails with HTTP 404, code 101005, message “脚本被删除”, while the management UI shows review pending. The settings do not persist. Automatic synchronization is therefore **not confirmed**; recheck the existing listing when the review completes.

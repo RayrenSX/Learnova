@@ -45,7 +45,9 @@ var StudyHelperUpdate = (() => {
           check: "node --check \u5B66\u4E60\u901A\u5B66\u4E60\u52A9\u624B.user.js && node --check \u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
           test: "node tests/font-codec.cjs && node tests/web-search.cjs && node tests/external-bank.cjs && node tests/platform-tasks.cjs && node tests/run.cjs",
           "test:playback": "node tests/real-playback.cjs",
-          "test:update": "node tests/update.cjs"
+          "test:update": "node tests/update.cjs",
+          "build:greasyfork": "node tools/build-greasyfork.cjs",
+          "test:distribution": "node tests/distribution.cjs"
         },
         keywords: [],
         author: "",
@@ -68,6 +70,7 @@ var StudyHelperUpdate = (() => {
     "../src/update.cjs"(exports, module) {
       var VERSION = require_package().version;
       var BASE = "https://github.com/RayrenSX/Learnova/releases/latest/download/";
+      var GREASY_FORK = false;
       function newer(remote, local) {
         if (!/^\d+\.\d+\.\d+$/.test(remote) || !/^\d+\.\d+\.\d+$/.test(local)) return false;
         const a = remote.split(".").map(Number), b = local.split(".").map(Number);
@@ -79,8 +82,23 @@ var StudyHelperUpdate = (() => {
       function mount(root, standalone = false) {
         if (!root || root.querySelector("[data-study-update]")) return;
         const filename = standalone ? "pintia-helper" : "study-helper";
-        const url = BASE + filename + ".user.js";
-        const key = "study-helper.update." + filename;
+        let url = BASE + filename + ".user.js";
+        let metaUrl = BASE + filename + ".meta.js";
+        if (GREASY_FORK) {
+          const info = typeof GM_info === "object" ? GM_info : {};
+          const candidate = info.script?.downloadURL || info.scriptMetaStr?.match(/^\/\/\s*@downloadURL\s+(\S+)/m)?.[1] || "";
+          try {
+            const native = new URL(candidate);
+            if (native.protocol !== "https:" || native.hostname !== "update.greasyfork.org" || !/\/scripts\/\d+\/.*\.user\.js$/.test(native.pathname)) throw new Error("Invalid update URL");
+            url = native.href;
+            metaUrl = native.href.replace(/\.user\.js$/, ".meta.js");
+          } catch {
+            url = "";
+            metaUrl = "";
+          }
+        }
+        const interval = (GREASY_FORK ? 24 : 6) * 60 * 60 * 1e3;
+        const key = "study-helper.update." + (GREASY_FORK ? "greasyfork." : "") + filename;
         const header = root.querySelector("header");
         if (!header) return;
         const button = document.createElement("button");
@@ -113,13 +131,32 @@ var StudyHelperUpdate = (() => {
         }
         async function check(manual = false) {
           if (busy) return;
+          if (!metaUrl) {
+            if (manual) show("\u8BF7\u901A\u8FC7\u811A\u672C\u7BA1\u7406\u5668\u68C0\u67E5\u6B64 Greasy Fork \u811A\u672C\u7684\u66F4\u65B0\u3002");
+            return;
+          }
+          if (GREASY_FORK) {
+            let previous = 0;
+            try {
+              if (typeof GM_getValue === "function") previous = Number(GM_getValue(key + ".checked", 0));
+            } catch {
+            }
+            if (Date.now() - previous < interval) {
+              if (manual) show(latest ? "\u53D1\u73B0\u65B0\u7248\u672C v" + latest + "\uFF08\u5F53\u524D v" + VERSION + "\uFF09" : "\u4ECA\u65E5\u5DF2\u68C0\u67E5\u66F4\u65B0\uFF0C\u5F53\u524D v" + VERSION + "\u3002", Boolean(latest));
+              return;
+            }
+            try {
+              if (typeof GM_setValue === "function") GM_setValue(key + ".checked", Date.now());
+            } catch {
+            }
+          }
           busy = true;
           if (manual) show("\u6B63\u5728\u68C0\u67E5\u66F4\u65B0\u2026");
           try {
             if (typeof GM_xmlhttpRequest !== "function") throw new Error("\u7F3A\u5C11\u7528\u6237\u811A\u672C\u7F51\u7EDC\u6743\u9650");
             const remote = await new Promise((resolve, reject) => GM_xmlhttpRequest({
               method: "GET",
-              url: BASE + filename + ".meta.js?_=" + Date.now(),
+              url: metaUrl + "?_=" + Date.now(),
               timeout: 15e3,
               onload: (response) => {
                 const match = response.responseText?.match(/^\/\/\s*@version\s+(\S+)/m);
@@ -167,7 +204,7 @@ var StudyHelperUpdate = (() => {
           }
         } catch {
         }
-        if (window.top === window.self && (!Number.isFinite(checked) || Date.now() - checked >= 6 * 60 * 60 * 1e3)) void check();
+        if (window.top === window.self && (!Number.isFinite(checked) || Date.now() - checked >= interval)) void check();
       }
       module.exports = { VERSION, newer, mount };
     }
@@ -30600,7 +30637,9 @@ ${example.output}`);
           check: "node --check 学习通学习助手.user.js && node --check 学习助手完整版.user.js",
           test: "node tests/font-codec.cjs && node tests/web-search.cjs && node tests/external-bank.cjs && node tests/platform-tasks.cjs && node tests/run.cjs",
           "test:playback": "node tests/real-playback.cjs",
-          "test:update": "node tests/update.cjs"
+          "test:update": "node tests/update.cjs",
+          "build:greasyfork": "node tools/build-greasyfork.cjs",
+          "test:distribution": "node tests/distribution.cjs"
         },
         keywords: [],
         author: "",

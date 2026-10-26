@@ -8,7 +8,7 @@
 
 Learnova 将课程导航、媒体与阅读辅助、题库及 AI 辅助，以及 Pintia 代码编辑与测试集中到网页内的工作台。安装一份合并脚本，即可在支持的网站加载对应模块。
 
-[安装 Learnova](https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.user.js) · [ScriptCat](https://scriptcat.org/zh-CN/script-show-page/8739) · [版本更新](https://github.com/RayrenSX/Learnova/releases) · [反馈问题](https://github.com/RayrenSX/Learnova/issues)
+[安装 Learnova](https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.user.js) · [Greasy Fork 学习通版](https://greasyfork.org/zh-CN/scripts/602230-learnova-for-chaoxing) · [Greasy Fork Pintia 版](https://greasyfork.org/zh-CN/scripts/602231-learnova-for-pintia) · [版本更新](https://github.com/RayrenSX/Learnova/releases) · [反馈问题](https://github.com/RayrenSX/Learnova/issues)
 
 ## 安装
 
@@ -18,10 +18,14 @@ Learnova 将课程导航、媒体与阅读辅助、题库及 AI 辅助，以及 
 
 | 版本 | 适用范围 | 安装入口 |
 | --- | --- | --- |
-| **Learnova** | 学习通 + Pintia，推荐 | [GitHub](https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.user.js) / [ScriptCat](https://scriptcat.org/zh-CN/script-show-page/8739) |
+| **Learnova** | 学习通 + Pintia，推荐 | [GitHub](https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.user.js) |
 | **Learnova for Pintia** | 仅 Pintia 代码工作台 | [GitHub](https://github.com/RayrenSX/Learnova/releases/latest/download/pintia-helper.user.js) |
+| **Learnova for Chaoxing** | 仅学习通，Greasy Fork 版本 | [Greasy Fork](https://greasyfork.org/zh-CN/scripts/602230-learnova-for-chaoxing) |
+| **Learnova for Pintia** | 仅 Pintia，Greasy Fork 版本 | [Greasy Fork](https://greasyfork.org/zh-CN/scripts/602231-learnova-for-pintia) |
 
-合并版与 Pintia 独立版二选一，避免同一题目出现两个工作台。脚本直接覆盖学习通相关域名、支持的阅读资源页，以及 `pintia.cn/problem-sets/*`。
+每个站点只启用一份对应模块，避免出现两个工作台。Greasy Fork 因单脚本体积限制分别提供学习通版与 Pintia 版，可按需安装。脚本覆盖学习通相关域名、支持的阅读资源页，以及 `pintia.cn/problem-sets/*`。
+
+[ScriptCat 合并版条目](https://scriptcat.org/zh-CN/script-show-page/8739)已提交，当前处于平台审核中，普通用户暂时无法下载；可先通过上方已开放的入口安装。
 
 **从旧 3.x / 1.x 版本迁移：** 本次更名并将版本统一为 `0.1.2`，首次需要手动安装，并停用旧脚本。脚本管理器按安装脚本隔离配置；如果原设置没有自动保留，请在新版中重新填写接口、密钥和题库配置。
 
@@ -75,10 +79,12 @@ Pintia 模块不点击正式提交。代码填写与平台测试分别处理；�
 
 两个站点的工作台标题栏均显示 **`v0.1.2`**。点击版本号，或打开脚本管理器菜单中的“检查 Learnova 更新”，即可手动检查。
 
-- 顶层页面启动时，距离上次成功检查超过六小时会查询 GitHub 最新版本。
+- GitHub 版在顶层页面启动时，距离上次成功检查超过六小时会查询 GitHub 最新版本。
 - 发现更高版本后，工作台显示“发现新版本”和“立即更新”链接；同一新版只发送一次桌面通知。
 - 提示会保留在后续页面中，方便稍后安装。网络失败时可点击版本号重试。
 - 安装脚本包含固定的 `.meta.js` 检查地址和 `.user.js` 下载地址，供管理器按其更新设置使用。
+
+Greasy Fork 版保留站内更新渠道，使用该条目的原生安装链接，脚本内检查最多每 24 小时一次。两个发布渠道均显示版本号和新版提示。
 
 更新提示不会自行安装代码。后续版本使用递增版本号；`0.1.2` 的首次迁移方法见上方安装说明。
 
@@ -97,9 +103,11 @@ npm ci
 npm ci --prefix pintia
 npm run build
 npm run build --prefix pintia
+npm run build:greasyfork
 npm run check
 npm run check --prefix pintia
 npm run test:update
+npm run test:distribution
 ```
 
 运行更广的隔离测试：
@@ -117,11 +125,11 @@ npm test --prefix pintia
 | `pintia/src/` | Pintia 编辑器、平台适配与 AI 分析 |
 | `tools/`、`pintia/tools/` | 构建工具 |
 | `tests/`、`pintia/tests/` | 隔离测试与页面夹具 |
-| `dist/` | 合并版和独立版的 `.user.js`、`.meta.js` 发布文件 |
+| `dist/` | GitHub 合并版、独立版及 `greasyfork/` 下的站点版本发布文件 |
 
 ## 发布
 
-GitHub Actions 在推送 `main` 时构建、检查并保存产物；推送与 `package.json` 版本匹配的 `v*` 标签时，发布 GitHub Release 和四个固定命名的安装、元信息文件。根包版本是构建版本来源。
+GitHub Actions 在推送 `main` 时构建、检查并保存产物；推送与 `package.json` 版本匹配的 `v*` 标签时，发布 GitHub Release 和各版本的安装、元信息文件。根包版本是构建版本来源。
 
 修改版本、更新说明、创建标签及脚本站同步方法见 [发布指南](PUBLISHING.md)。每次发布的具体变化见 [Releases](https://github.com/RayrenSX/Learnova/releases)。
 

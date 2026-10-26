@@ -9,7 +9,9 @@
     "check": "node --check 学习通学习助手.user.js && node --check 学习助手完整版.user.js",
     "test": "node tests/font-codec.cjs && node tests/web-search.cjs && node tests/external-bank.cjs && node tests/platform-tasks.cjs && node tests/run.cjs",
     "test:playback": "node tests/real-playback.cjs",
-    "test:update": "node tests/update.cjs"
+    "test:update": "node tests/update.cjs",
+    "build:greasyfork": "node tools/build-greasyfork.cjs",
+    "test:distribution": "node tests/distribution.cjs"
   },
   "keywords": [],
   "author": "",

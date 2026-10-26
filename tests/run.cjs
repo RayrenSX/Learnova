@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const ueditorFixture = require('./fixtures/ueditor.cjs');
 const catalogFixture = require('./fixtures/catalog.cjs');
 const cloudReaderFixture = require('./fixtures/cloud-reader.cjs');
-const script = fs.readFileSync(path.join(__dirname, '..', '学习通学习助手.user.js'), 'utf8');
+const script = fs.readFileSync(process.env.CX_TEST_SCRIPT || path.join(__dirname, '..', '学习通学习助手.user.js'), 'utf8');
 const BASE = 'https://mooc1.chaoxing.com';
 const URL = BASE + '/mycourse/studentstudy?knowledgeId=1';
 const STORE = 'cxVideoHelper.settings.v1';

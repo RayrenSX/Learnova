@@ -21,6 +21,7 @@ jobs:
       - run: npm ci
       - run: npm ci --prefix pintia
       - run: npm run build && npm run build --prefix pintia
+      - run: npm run build:greasyfork && npm run test:distribution
       - run: npm run check && npm run check --prefix pintia
       - run: npx playwright install --with-deps chromium
       - run: npm run test:update
@@ -45,4 +46,4 @@ jobs:
       - name: Publish versioned assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --title "Learnova $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md --latest
+        run: gh release create "$GITHUB_REF_NAME" dist/*.js dist/greasyfork/*.js --title "Learnova $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md --latest
