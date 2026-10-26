@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova
 // @namespace    local.xuexitong.helper
-// @version      0.1.2
+// @version      0.1.3
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @updateURL    https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.meta.js
@@ -40,7 +40,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.2",
+        version: "0.1.3",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -480,8 +480,10 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
   function cacheKey(q) { return q.key; }
   function cacheScope() {
     // 配额/密钥不是身份信息，不写入缓存；配置版本与来源改变后重新核查。
-    return CXFontCodec.sourceFingerprint(JSON.stringify([2, settings.apiUrl, settings.apiModel, settings.externalBanks?.map(item =>
-      [item.name, item.url, item.method, item.answerPath, item.enabled !== false]), settings.multiModelEnabled,settings.voteModels,settings.fuzzyMatching]));
+    // Hash the complete saved bank configuration, including transforms, templates,
+    // status rules and authentication changes. Only the digest enters the cache.
+    return CXFontCodec.sourceFingerprint(JSON.stringify([3, settings.apiUrl, settings.apiModel, settings.externalBanks,
+      settings.multiModelEnabled,settings.voteModels,settings.fuzzyMatching]));
   }
   function currentCache(item) {
     return item.schemaVersion === 2 && item.scope === cacheScope() && Number.isFinite(item.at)
@@ -1167,7 +1169,11 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
     const groups = specialGroups(root, type);
     if (groups.length) options.length = 0;
     const audio = CXTasks.audioSources(root);
-    const key = JSON.stringify([title, type, options.map((o) => [o.value, o.text]), editors.length, groups.map(groupSignature), ...(audio.length ? [audio] : []), ...(type === 'programming' ? [CXFontCodec.sourceFingerprint(CXTasks.statement(root,{bounded:false}))] : [])]);
+    const images = questionImages({root, heading, options, groups});
+    const imageIdentity = images.map(image => [image.currentSrc, image.src, image.getAttribute('srcset'), image.getAttribute('sizes'),
+      [...(image.closest('picture')?.querySelectorAll('source') || [])].map(source => [source.getAttribute('srcset'),source.getAttribute('media'),source.getAttribute('type')])]);
+    const key = JSON.stringify([title, type, options.map((o) => [o.value, o.text]), editors.length, groups.map(groupSignature), ...(audio.length ? [audio] : []),
+      ...(images.length ? [imageIdentity] : []), ...(type === 'programming' ? [CXFontCodec.sourceFingerprint(CXTasks.statement(root,{bounded:false}))] : [])]);
     return { root, heading, doc: root.ownerDocument, popup, title, type, options, editors, groups, key, audio,
       encrypted: Boolean(root.querySelector('.font-cxsecret') || root.closest('.font-cxsecret')) && !CXFontCodec.complete(root),
       unreadable: !CXFontCodec.complete(root) || Boolean(questionImages({ root, heading, options, groups }).length)
@@ -1245,6 +1251,14 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
           headers: { 'Content-Type': 'application/json', ...(options.headers || (settings.apiKey && new URL(url).origin === settings.apiKeyOrigin ? { Authorization: `Bearer ${settings.apiKey}` } : {})) },
           data: JSON.stringify(body),
           onload: (response) => {
+            if (response.finalUrl) {
+              let sameOrigin = false;
+              try { sameOrigin = new URL(response.finalUrl).origin === new URL(url).origin; } catch {}
+              if (!sameOrigin) {
+                const error = new Error(`${service} 响应跳转到其他域名或最终地址无效，未采用`);
+                error.responseOriginMismatch = true; done(error); return;
+              }
+            }
             options.onResponse?.({ httpStatus: response.status, completedAt: new Date().toISOString() });
             if (response.status < 200 || response.status >= 300) {
               const error = new Error(response.status === 429 ? `${service} 服务限流，查题等待 60 秒；之后可点击重试失败题`
@@ -1677,7 +1691,7 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
         }
       } catch (error) {
         if (error.httpStatus === 429) state.nextQueryAt = Date.now() + 60000;
-        if (error.answerConflict || settings.requireWebSearch || !settings.randomFallback || !['single', 'multiple', 'judgment'].includes(q.type) || !fresh(q, epoch)
+        if (error.answerConflict || error.responseOriginMismatch || settings.requireWebSearch || !settings.randomFallback || !['single', 'multiple', 'judgment'].includes(q.type) || !fresh(q, epoch)
           || controller.signal.aborted || snapshot(q) !== before || (hasInput(q) && !settings.overwriteAnswers)) throw error;
         const options = availableChoices(q);
         if (!options.length) throw error;
@@ -34231,7 +34245,7 @@ ${example.output}`);
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.2",
+        version: "0.1.3",
         private: true,
         description: "学习通播放、阅读与答题和 Pintia 代码工作台合并用户脚本，按网站自动加载",
         main: "学习助手完整版.user.js",

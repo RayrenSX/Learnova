@@ -123,7 +123,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
           let answer = api.byModel?.[payload.model] || api.answer || { answers: ['B'], confidence: 0.99 };
           if (api.byTitle?.[question.question]) answer = api.byTitle[question.question];
           const content = api.raw ?? JSON.stringify(answer);
-          options.onload({ status: 200, responseText: JSON.stringify(payload.tools ? (api.responses ?? {
+          options.onload({ status: 200, finalUrl: api.finalUrl, responseText: JSON.stringify(payload.tools ? (api.responses ?? {
             status: 'completed', output: [
               ...(!api.noSearch ? [{ type: 'web_search_call', id: 'test-search', status: 'completed', action: { type: 'search', query: '资料查询', sources: [{ title: '来源', url: 'https://evidence.example/reference' }] } }] : []),
               { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: content }] },
@@ -907,7 +907,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
   });
   await test('旧随机及不可信缓存启动时清理并写回，正常 AI 和外部题库缓存保留', async () => {
     const question = '旧随机缓存';
-    const entry = { schemaVersion: 2, scope: require('../tools/font-codec.cjs').sourceFingerprint(JSON.stringify([2, aiSettings.apiUrl, aiSettings.apiModel, [], false, '', true])), at: Date.now(),
+    const entry = { schemaVersion: 2, scope: require('../tools/font-codec.cjs').sourceFingerprint(JSON.stringify([3, aiSettings.apiUrl, aiSettings.apiModel, [], false, '', true])), at: Date.now(),
       key: JSON.stringify([question, 'single', [['A', '甲'], ['B', '乙']], 0, []]), question, answers: ['A'], confidence: 1, source: 'AI' };
     const valid = [entry, { ...entry, key: '另一道题', source: '外部题库：测试' }];
     const invalid = [
@@ -1269,7 +1269,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
   });
   await test('多选的本地题库及缓存单项答案无效时继续AI，AI仍单项则不填写', async () => {
     const question = '多选题库校验';
-    const cached = { schemaVersion: 2, scope: require('../tools/font-codec.cjs').sourceFingerprint(JSON.stringify([2, aiSettings.apiUrl, aiSettings.apiModel, [], false, '', true])), at: Date.now(),
+    const cached = { schemaVersion: 2, scope: require('../tools/font-codec.cjs').sourceFingerprint(JSON.stringify([3, aiSettings.apiUrl, aiSettings.apiModel, [], false, '', true])), at: Date.now(),
       key: JSON.stringify([question, 'multiple', [['A', '甲'], ['B', '乙'], ['C', '丙']], 0, []]), question, answers: ['A'], confidence: 1, source: 'AI' };
     for (const source of ['bank', 'cache']) {
       const { page, context } = await setup(choice(1, question, ['甲', '乙', '丙'], '多选题'), { ...aiSettings, answerCache: true },
@@ -2007,6 +2007,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
   await require('./fixtures/homework.cjs')({test,setup,choice,checked,logContains,aiSettings,assert});
   await require('./fixtures/advanced-tasks.cjs')({test,setup,choice,blank,checked,logContains,aiSettings,assert});
   await require('./fixtures/stability.cjs')({test,setup,choice,checked,logContains,aiSettings,assert});
+  await require('./fixtures/scriptcat-fixes.cjs')({test,setup,choice,checked,logContains,aiSettings,assert});
   await browser.close();
   fs.mkdirSync(path.join(__dirname, '..', 'test-results'), { recursive: true });
   const reportName = process.env.CX_TEST_SHARD ? `report-shard-${process.env.CX_TEST_SHARD.replace('/', '-')}.json`

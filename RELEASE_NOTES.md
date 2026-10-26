@@ -1,3 +1,13 @@
+Learnova 0.1.3
+
+- Fix stale image answers: changing an image URL, srcset, or picture source invalidates the question even when its alt text stays the same.
+- Invalidate answer caches when any external question-bank configuration changes, including request templates, handlers, parsing rules and authentication headers. Older cache scopes are no longer reused.
+- Reject AI responses with a different or invalid final origin, and stop that answer without random fallback. Same-origin redirects and managers without finalUrl remain compatible.
+- Clarify the default random fallback, low-confidence comparison and answer-overwrite behavior after automatic answering is enabled.
+- Add six regression scenarios for the fixes and rebuild combined, standalone and Greasy Fork editions.
+
+The origin check validates the received response; it does not guarantee that a userscript manager prevented a redirected network request. Tests use isolated simulated pages and APIs.
+
 Learnova 0.1.2
 
 - Unified release version and English project name.

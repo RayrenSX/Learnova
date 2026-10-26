@@ -201,8 +201,10 @@
   function cacheKey(q) { return q.key; }
   function cacheScope() {
     // 配额/密钥不是身份信息，不写入缓存；配置版本与来源改变后重新核查。
-    return CXFontCodec.sourceFingerprint(JSON.stringify([2, settings.apiUrl, settings.apiModel, settings.externalBanks?.map(item =>
-      [item.name, item.url, item.method, item.answerPath, item.enabled !== false]), settings.multiModelEnabled,settings.voteModels,settings.fuzzyMatching]));
+    // Hash the complete saved bank configuration, including transforms, templates,
+    // status rules and authentication changes. Only the digest enters the cache.
+    return CXFontCodec.sourceFingerprint(JSON.stringify([3, settings.apiUrl, settings.apiModel, settings.externalBanks,
+      settings.multiModelEnabled,settings.voteModels,settings.fuzzyMatching]));
   }
   function currentCache(item) {
     return item.schemaVersion === 2 && item.scope === cacheScope() && Number.isFinite(item.at)
@@ -888,7 +890,11 @@
     const groups = specialGroups(root, type);
     if (groups.length) options.length = 0;
     const audio = CXTasks.audioSources(root);
-    const key = JSON.stringify([title, type, options.map((o) => [o.value, o.text]), editors.length, groups.map(groupSignature), ...(audio.length ? [audio] : []), ...(type === 'programming' ? [CXFontCodec.sourceFingerprint(CXTasks.statement(root,{bounded:false}))] : [])]);
+    const images = questionImages({root, heading, options, groups});
+    const imageIdentity = images.map(image => [image.currentSrc, image.src, image.getAttribute('srcset'), image.getAttribute('sizes'),
+      [...(image.closest('picture')?.querySelectorAll('source') || [])].map(source => [source.getAttribute('srcset'),source.getAttribute('media'),source.getAttribute('type')])]);
+    const key = JSON.stringify([title, type, options.map((o) => [o.value, o.text]), editors.length, groups.map(groupSignature), ...(audio.length ? [audio] : []),
+      ...(images.length ? [imageIdentity] : []), ...(type === 'programming' ? [CXFontCodec.sourceFingerprint(CXTasks.statement(root,{bounded:false}))] : [])]);
     return { root, heading, doc: root.ownerDocument, popup, title, type, options, editors, groups, key, audio,
       encrypted: Boolean(root.querySelector('.font-cxsecret') || root.closest('.font-cxsecret')) && !CXFontCodec.complete(root),
       unreadable: !CXFontCodec.complete(root) || Boolean(questionImages({ root, heading, options, groups }).length)
@@ -966,6 +972,14 @@
           headers: { 'Content-Type': 'application/json', ...(options.headers || (settings.apiKey && new URL(url).origin === settings.apiKeyOrigin ? { Authorization: `Bearer ${settings.apiKey}` } : {})) },
           data: JSON.stringify(body),
           onload: (response) => {
+            if (response.finalUrl) {
+              let sameOrigin = false;
+              try { sameOrigin = new URL(response.finalUrl).origin === new URL(url).origin; } catch {}
+              if (!sameOrigin) {
+                const error = new Error(`${service} 响应跳转到其他域名或最终地址无效，未采用`);
+                error.responseOriginMismatch = true; done(error); return;
+              }
+            }
             options.onResponse?.({ httpStatus: response.status, completedAt: new Date().toISOString() });
             if (response.status < 200 || response.status >= 300) {
               const error = new Error(response.status === 429 ? `${service} 服务限流，查题等待 60 秒；之后可点击重试失败题`
@@ -1398,7 +1412,7 @@
         }
       } catch (error) {
         if (error.httpStatus === 429) state.nextQueryAt = Date.now() + 60000;
-        if (error.answerConflict || settings.requireWebSearch || !settings.randomFallback || !['single', 'multiple', 'judgment'].includes(q.type) || !fresh(q, epoch)
+        if (error.answerConflict || error.responseOriginMismatch || settings.requireWebSearch || !settings.randomFallback || !['single', 'multiple', 'judgment'].includes(q.type) || !fresh(q, epoch)
           || controller.signal.aborted || snapshot(q) !== before || (hasInput(q) && !settings.overwriteAnswers)) throw error;
         const options = availableChoices(q);
         if (!options.length) throw error;

@@ -25,6 +25,10 @@ jobs:
       - run: npm run check && npm run check --prefix pintia
       - run: npx playwright install --with-deps chromium
       - run: npm run test:update
+      - name: Verify ScriptCat audit regressions
+        run: node tests/run.cjs
+        env:
+          CX_TEST_FILTER: ScriptCat
       - uses: actions/upload-artifact@v4
         with:
           name: Learnova
