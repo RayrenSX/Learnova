@@ -2,6 +2,12 @@
 
 All editions currently use **0.1.5**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
 
+## 0.1.5 branding update (2026-10-26)
+
+The new book/play icon is embedded in both workbench headers and referenced by `@icon` in all script editions. The repository social preview uses the 1280×640 cover; GitHub confirms `usesCustomOpenGraphImage: true`. README and both Greasy Fork descriptions use the same cover. README uses an absolute image URL for ScriptCat description synchronization.
+
+GitHub release v0.1.5 built successfully. ScriptCat 8739 and both Greasy Fork listings were synchronized to 0.1.5; their code includes the new icon metadata. Branding UI checks 7/7, Pintia checks 69/69, syntax, native update and distribution checks passed.
+
 ## 0.1.4 publication status (2026-10-26)
 
 - [GitHub release](https://github.com/RayrenSX/Learnova/releases/tag/v0.1.4) published from `777d56d`. The [tagged build](https://github.com/RayrenSX/Learnova/actions/runs/40276633021) passed and uploaded all eight script / metadata assets.

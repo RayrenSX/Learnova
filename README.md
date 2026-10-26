@@ -1,4 +1,4 @@
-![Learnova — 课程学习、题库与 AI、代码工作台](assets/learnova-cover.png)
+![Learnova — 课程学习、题库与 AI、代码工作台](https://raw.githubusercontent.com/RayrenSX/Learnova/main/assets/learnova-cover.png)
 
 # Learnova
 
