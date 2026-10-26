@@ -57,12 +57,12 @@ Keep these editions on the Greasy Fork update channel. Platform descriptions mus
 
 Combined listing: [8739](https://scriptcat.org/zh-CN/script-show-page/8739).
 
-The version 0.1.2 upload exists, but the management page says it is under review and ordinary users cannot access it yet. Its public installation link returns HTTP 404. Do not create duplicate submissions.
+The existing listing is publicly accessible as of 2026-10-26. Version 0.1.3 was synchronized successfully and its public installation URL returns HTTP 200 with `@version 0.1.3`.
 
-Intended source synchronization:
+Confirmed source synchronization:
 
 - Script: `https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.user.js`
 - Description: `https://raw.githubusercontent.com/RayrenSX/Learnova/main/README.md`
 - Mode: Automatic.
 
-The synchronization form currently fails with HTTP 404, code 101005, message “脚本被删除”, while the management UI shows review pending. The settings do not persist. Automatic synchronization is therefore **not confirmed**; recheck the existing listing when the review completes.
+The earlier review-pending 404 is resolved. The source and description URLs and Automatic selection were saved, synchronized once, and reloaded to confirm persistence. Both Greasy Fork listings were also synchronized to 0.1.3; their public installation files and description versions were verified.
