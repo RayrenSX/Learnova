@@ -25,6 +25,16 @@ module.exports = async function({test,setup,choice,checked,logContains,aiSetting
     assert.equal(payload.question,'课后作业正文');assert.equal(payload.type,'single');assert.deepEqual(payload.options.map(o=>o.text),['甲','乙','丙']);
     assert.equal(await page.locator('.answerBg').nth(1).locator('.check_answer').count(),1);assert.deepEqual(errors,[]);
   });
+  await test('章节测验：doHomeWorkNew 任务 iframe 不受独立课后作业开关阻断',async()=>{
+    const taskPath='/mooc-ans/work/doHomeWorkNew?courseId=267603740&workId=56423473&api=1&knowledgeid=705035958&jobid=work-c4b53e6f33a546f499d5991b94069cc9&originJobId=work-c4b53e6f33a546f499d5991b94069cc9';
+    const body='<div class="ans-job"><iframe src="'+taskPath+'"></iframe></div>';
+    const {page,errors}=await setup(body,{...aiSettings,homeworkEnabled:false,autoSubmit:false},[],{}, {[new URL(taskPath,'https://mooc1.chaoxing.com').pathname]:question(1,'章节任务正文')});
+    await logContains(page,'已填写（AI）');
+    const frame=page.frames().find(item=>item.url().includes('/work/doHomeWorkNew'));
+    assert.equal(await frame.locator('.answerBg').nth(1).locator('.check_answer').count(),1);
+    assert.equal(await page.evaluate(()=>window.nextClicks),0);
+    assert.deepEqual(errors,[]);
+  });
   await test('课后作业：独立提交开关默认关闭，不继承章节提交，暂存需明确开关',async()=>{
     const {page}=await setup(metadata(1)+question(1,'独立提交')+save+submit,{...aiSettings,autoSubmit:true},[],{}, {},{path});
     await logContains(page,'已填写（AI）');await page.waitForTimeout(1000);

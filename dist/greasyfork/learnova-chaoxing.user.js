@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova for Chaoxing
 // @namespace    local.xuexitong.helper
-// @version      0.1.7
+// @version      0.1.8
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @description  学习通课程目录、视频音频播放、阅读、题库与可配置 AI 辅助。
@@ -40,7 +40,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.7",
+        version: "0.1.8",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -7238,11 +7238,21 @@ var CXHomework = (() => {
           return "";
         }
       }
+      function chapterTask(doc) {
+        try {
+          const url = new URL(doc.URL);
+          const params = url.searchParams;
+          const taskId = params.get("jobid") || params.get("jobId") || params.get("originJobId") || params.get("originjobid") || "";
+          return params.has("knowledgeid") || params.has("knowledgeId") || /^work-/i.test(taskId) || params.has("originJobId") || params.has("originjobid");
+        } catch {
+          return false;
+        }
+      }
       function kind(doc) {
         const path = pathOf(doc);
         if (/\/(?:exam|exam-ans)\//i.test(path) || doc.querySelector('#examId, input[name="examId"]')) return "none";
         if (/\/(?:mooc2\/)?work\/(?:view|lookWork|viewWork|viewWorkNew|review|workAnswer|preview)(?:\/|$)/i.test(path)) return "review";
-        if (/\/(?:mooc2\/)?work\/(?:dowork|doHomeWorkNew|doHomeWork|answer)(?:\/|$)/i.test(path)) return "answer";
+        if (/\/(?:mooc2\/)?work\/(?:dowork|doHomeWorkNew|doHomeWork|answer)(?:\/|$)/i.test(path)) return chapterTask(doc) ? "none" : "answer";
         if (/\/work\/(?:list|stu-work|workList)(?:\/|$)/i.test(path)) return "list";
         if (/\/work\/(?:detail|workDetail)(?:\/|$)/i.test(path) || doc.querySelector("[data-cx-homework-detail]")) return "detail";
         return "none";
@@ -7349,7 +7359,7 @@ var CXHomework = (() => {
         }
         return entries;
       }
-      module.exports = { ROOTS, SAVE_FEEDBACK, kind, identity, readonly, questionId, heading, hint, roots, manifest, control, saveEvidence, submissionState, workURL, listEntries };
+      module.exports = { ROOTS, SAVE_FEEDBACK, chapterTask, kind, identity, readonly, questionId, heading, hint, roots, manifest, control, saveEvidence, submissionState, workURL, listEntries };
     }
   });
   return require_homework();

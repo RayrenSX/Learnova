@@ -30,6 +30,7 @@ module.exports = `<style>
   :host([data-docked=false]) .panel{display:flex;flex-direction:column;height:min(820px,calc(100vh - 16px));max-height:calc(100vh - 16px)}
   :host([data-docked=false]) .body{flex:1;min-height:0;max-height:none}
   :host([data-docked=true]) .body{min-height:0}
+  :host([data-bottom-collapsed=true]) .body,:host([data-bottom-collapsed=true]) footer{display:none}
   #editor-splitter{position:relative;height:9px;flex:none;background:#f1f6f9;border-top:1px solid #e1e9ee;border-bottom:1px solid #e1e9ee;cursor:row-resize;touch-action:none;user-select:none;display:grid;place-items:center}
   #editor-splitter::after{content:'';width:32px;height:3px;background:#b4c7d2;border-radius:4px}
   #editor-splitter:hover,#editor-splitter.dragging{background:#dfeef5}#editor-splitter:focus-visible{outline:2px solid #389abc;outline-offset:-2px}

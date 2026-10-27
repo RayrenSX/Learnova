@@ -278,10 +278,31 @@ const harness = esbuild.buildSync({stdin: {resolveDir: root, contents: `
       const page=await setup({dock:true});await button(page,'editor-splitter').focus();const before=await button(page,'editor-workspace').boundingBox();
       await page.keyboard.press('ArrowDown');await page.waitForTimeout(100);assert.ok((await button(page,'editor-workspace').boundingBox()).height>before.height);
       await page.keyboard.press('End');await page.setViewportSize({width:700,height:500});await page.waitForTimeout(150);
-      const pane=await page.locator('.answerInput_fixture').boundingBox(),editor=await button(page,'editor-workspace').boundingBox(),lower=await button(page,'body').boundingBox(),action=await button(page,'diagnose').boundingBox();
-      assert.ok(editor.height>=80&&lower.height<=20);assert.equal(await button(page,'editor-splitter').getAttribute('aria-valuenow'),'100');assert.equal(await button(page,'editor-collapse').getAttribute('aria-pressed'),'true');assert.ok(action.y+action.height<=pane.y+pane.height+1);
+      const pane=await page.locator('.answerInput_fixture').boundingBox(),editor=await button(page,'editor-workspace').boundingBox(),tabs=await page.locator('#pintia-code-helper >> nav').boundingBox();
+      assert.ok(editor.height>=80);assert.equal(await button(page,'body').isVisible(),false);assert.equal(await button(page,'diagnose').isVisible(),false);assert.equal(await button(page,'editor-splitter').getAttribute('aria-valuenow'),'100');assert.equal(await button(page,'editor-collapse').getAttribute('aria-pressed'),'true');assert.ok(Math.abs(tabs.y+tabs.height-(pane.y+pane.height))<=2);assert.ok(Math.abs(editor.y+editor.height+9-tabs.y)<=2);
       await button(page,'editor-collapse').click();await page.waitForTimeout(100);assert.equal(await button(page,'editor-collapse').getAttribute('aria-pressed'),'false');assert.ok((await button(page,'body').boundingBox()).height>=79);
       await page.keyboard.press('Home');await page.waitForTimeout(100);assert.ok((await button(page,'editor-workspace').boundingBox()).height<editor.height);
+    });
+    await test('Dragging the separator to the bottom collapses actions and tabs reopen the saved height',async()=>{
+      for(const dock of [true,false]){
+        const page=await setup({dock,settings:{editorSplit:.35}});await page.waitForTimeout(100);
+        const before=await button(page,'editor-workspace').boundingBox(),bar=await button(page,'editor-splitter').boundingBox(),panel=await page.locator('#pintia-code-helper >> .panel').boundingBox();
+        await page.mouse.move(bar.x+bar.width/2,bar.y+bar.height/2);await page.mouse.down();await page.mouse.move(bar.x+bar.width/2,panel.y+panel.height,{steps:15});await page.mouse.up();await page.waitForTimeout(100);
+        const tabs=await page.locator('#pintia-code-helper >> nav').boundingBox(),collapsedBar=await button(page,'editor-splitter').boundingBox();
+        assert.equal(await button(page,'diagnose').isVisible(),false);assert.equal(await button(page,'body').isVisible(),false);assert.ok(Math.abs(tabs.y+tabs.height-panel.y-panel.height)<=2);assert.ok(Math.abs(collapsedBar.y+collapsedBar.height-tabs.y)<=1);assert.equal(await page.evaluate(store=>values[store].editorSplit,STORE),1);
+        await button(page,'tab-analysis').click();await page.waitForTimeout(100);
+        assert.equal(await button(page,'body').isVisible(),true);assert.equal(await button(page,'diagnose').isVisible(),true);assert.ok(Math.abs((await button(page,'editor-workspace').boundingBox()).height-before.height)<=2);
+        await button(page,'editor-collapse').click();await button(page,'editor-collapse').click();await page.waitForTimeout(100);
+        assert.equal(await button(page,'editor-collapse').getAttribute('aria-pressed'),'false');
+        await button(page,'editor-splitter').focus();await page.keyboard.press('End');await page.keyboard.press('ArrowUp');await page.waitForTimeout(100);
+        assert.equal(await button(page,'editor-collapse').getAttribute('aria-pressed'),'false');
+      }
+    });
+    await test('Saved collapsed separator keeps only bottom tabs after startup and resize',async()=>{
+      const page=await setup({dock:true,settings:{editorSplit:1}});await page.setViewportSize({width:700,height:500});await page.waitForTimeout(150);
+      const pane=await page.locator('.answerInput_fixture').boundingBox(),tabs=await page.locator('#pintia-code-helper >> nav').boundingBox();
+      assert.equal(await button(page,'body').isVisible(),false);assert.equal(await button(page,'diagnose').isVisible(),false);assert.ok(Math.abs(tabs.y+tabs.height-pane.y-pane.height)<=2);
+      await button(page,'editor-collapse').click();await page.waitForTimeout(100);assert.equal(await button(page,'body').isVisible(),true);assert.equal(await button(page,'diagnose').isVisible(),true);
     });
     await test('Saved separator ratio is restored at startup and fullscreen does not change it',async()=>{
       const page=await setup({dock:true,settings:{editorSplit:.35}});await page.waitForTimeout(100);

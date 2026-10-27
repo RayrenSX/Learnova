@@ -2,7 +2,7 @@
 
 # Learnova
 
-**学习通与 Pintia 的学习工作台 · 当前版本 0.1.7**
+**学习通与 Pintia 的学习工作台 · 当前版本 0.1.8**
 
 [![Release](https://img.shields.io/github/v/release/RayrenSX/Learnova?label=release)](https://github.com/RayrenSX/Learnova/releases/latest)
 [![Build](https://github.com/RayrenSX/Learnova/actions/workflows/release.yml/badge.svg)](https://github.com/RayrenSX/Learnova/actions/workflows/release.yml)
@@ -103,7 +103,7 @@ Pintia 模块不点击正式提交。代码填写与平台测试分别处理；�
 
 ## 版本与自动更新
 
-两个站点的工作台标题栏均显示 **`v0.1.4`**。点击版本号，或打开脚本管理器菜单中的“检查 Learnova 更新”，即可手动检查。
+两个站点的工作台标题栏均显示 **`v0.1.8`**。点击版本号，或打开脚本管理器菜单中的“检查 Learnova 更新”，即可手动检查。
 
 - GitHub 版在顶层页面启动时，距离上次成功检查超过六小时会查询 GitHub 最新版本。
 - 发现更高版本后，工作台显示“发现新版本”和“立即更新”链接；同一新版只发送一次桌面通知。

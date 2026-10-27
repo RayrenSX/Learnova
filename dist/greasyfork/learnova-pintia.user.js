@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova for Pintia
 // @namespace    local.pintia.code-helper
-// @version      0.1.7
+// @version      0.1.8
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @description  根据题目诊断现有代码，解释错因并生成修正代码；独立填写适配，不提交答案。
@@ -37,7 +37,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.7",
+        version: "0.1.8",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -30940,11 +30940,12 @@ ${example.output}`);
         let drag = null;
         let disposed = false;
         let frame = 0;
-        function bounds() {
+        function bounds(collapsed = false) {
+          host.dataset.bottomCollapsed = String(collapsed);
           const fixed = [...panel.children].filter((node) => node !== editor && node !== body && !node.hidden).reduce((sum, node) => sum + node.getBoundingClientRect().height, 0);
           const available = Math.max(0, panel.clientHeight - fixed);
           const min = Math.min(120, available * 0.4);
-          const max = Math.max(min, available - Math.min(8, available * 0.05));
+          const max = collapsed ? available : Math.max(min, available - Math.min(8, available * 0.05));
           return { available, min, max };
         }
         function updateButton() {
@@ -30957,7 +30958,7 @@ ${example.output}`);
         }
         function apply() {
           if (disposed || !host.isConnected || !panel.getClientRects().length || editor.matches(":fullscreen")) return;
-          const { available, min, max } = bounds();
+          const { available, min, max } = bounds(value !== null && value >= 0.999);
           if (!available) return;
           const desired = value ?? (host.dataset.docked === "true" && host.dataset.tab === "test" ? 0.62 : 0.5);
           const height = Math.max(min, Math.min(max, available * desired));
@@ -30981,13 +30982,16 @@ ${example.output}`);
           if (!available) return;
           const clamped = Math.max(min, Math.min(max, height));
           value = height >= max ? 1 : Math.min(1, Math.max(0.15, clamped / available));
-          if (value < 0.999) restoreValue = value;
+          if (value < 0.999 && !drag) restoreValue = value;
           apply();
           if (commit) save(value);
         }
         function down(event) {
           if (event.button !== 0 || event.target.closest("button")) return;
-          drag = { id: event.pointerId, y: event.clientY, height: editor.getBoundingClientRect().height };
+          if (value === null || value < 0.999) restoreValue = value ?? (host.dataset.docked === "true" && host.dataset.tab === "test" ? 0.62 : 0.5);
+          const height = value !== null && value >= 0.999 ? bounds().max : editor.getBoundingClientRect().height;
+          apply();
+          drag = { id: event.pointerId, y: event.clientY, height };
           handle.setPointerCapture(event.pointerId);
           handle.classList.add("dragging");
           event.preventDefault();
@@ -30999,6 +31003,7 @@ ${example.output}`);
           if (drag?.id !== event.pointerId) return;
           drag = null;
           handle.classList.remove("dragging");
+          if (value !== null && value < 0.999) restoreValue = value;
           try {
             handle.releasePointerCapture(event.pointerId);
           } catch {
@@ -31009,7 +31014,7 @@ ${example.output}`);
           if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
           event.preventDefault();
           const { min, max } = bounds();
-          const height = editor.getBoundingClientRect().height;
+          const height = value !== null && value >= 0.999 ? max : editor.getBoundingClientRect().height;
           set(event.key === "Home" ? min : event.key === "End" ? max : height + (event.key === "ArrowDown" ? 1 : -1) * (event.shiftKey ? 40 : 10), true);
         }
         function toggleBottom() {
@@ -31021,17 +31026,23 @@ ${example.output}`);
             set(bounds().available, true);
           }
         }
+        const tabs = panel.querySelector("nav");
+        function openTab(event) {
+          if (value !== null && value >= 0.999 && event.target.closest("[role=tab]")) toggleBottom();
+        }
         const observer = new ResizeObserver(schedule);
         observer.observe(panel);
         for (const node of panel.children) if (node !== editor && node !== body) observer.observe(node);
         for (const [name, callback] of [["pointerdown", down], ["pointermove", move], ["pointerup", end], ["pointercancel", end], ["lostpointercapture", end], ["keydown", key]]) handle.addEventListener(name, callback);
         button?.addEventListener("click", toggleBottom);
+        tabs?.addEventListener("click", openTab);
         schedule();
         return { refresh: schedule, destroy() {
           disposed = true;
           observer.disconnect();
           cancelAnimationFrame(frame);
           button?.removeEventListener("click", toggleBottom);
+          tabs?.removeEventListener("click", openTab);
           for (const [name, callback] of [["pointerdown", down], ["pointermove", move], ["pointerup", end], ["pointercancel", end], ["lostpointercapture", end], ["keydown", key]]) handle.removeEventListener(name, callback);
         } };
       }
@@ -31044,7 +31055,7 @@ ${example.output}`);
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.7",
+        version: "0.1.8",
         private: true,
         description: "学习通播放、阅读与答题和 Pintia 代码工作台合并用户脚本，按网站自动加载",
         main: "学习助手完整版.user.js",
@@ -31116,6 +31127,7 @@ ${example.output}`);
   :host([data-docked=false]) .panel{display:flex;flex-direction:column;height:min(820px,calc(100vh - 16px));max-height:calc(100vh - 16px)}
   :host([data-docked=false]) .body{flex:1;min-height:0;max-height:none}
   :host([data-docked=true]) .body{min-height:0}
+  :host([data-bottom-collapsed=true]) .body,:host([data-bottom-collapsed=true]) footer{display:none}
   #editor-splitter{position:relative;height:9px;flex:none;background:#f1f6f9;border-top:1px solid #e1e9ee;border-bottom:1px solid #e1e9ee;cursor:row-resize;touch-action:none;user-select:none;display:grid;place-items:center}
   #editor-splitter::after{content:'';width:32px;height:3px;background:#b4c7d2;border-radius:4px}
   #editor-splitter:hover,#editor-splitter.dragging{background:#dfeef5}#editor-splitter:focus-visible{outline:2px solid #389abc;outline-offset:-2px}

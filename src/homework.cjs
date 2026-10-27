@@ -3,11 +3,21 @@ const ROOTS = '.TiMu, .questionLi, .questionBox, .questionWrap, [data-cx-questio
 const SAVE_FEEDBACK = '#saveSuccessContent, #dialogToast, .save-result, [data-save-state]';
 const { virtualManifest } = require('./task-adapters.cjs');
 function pathOf(doc) { try { return new URL(doc.URL).pathname; } catch { return ''; } }
+function chapterTask(doc) {
+  try {
+    const url = new URL(doc.URL);
+    const params = url.searchParams;
+    const taskId = params.get('jobid') || params.get('jobId') || params.get('originJobId') || params.get('originjobid') || '';
+    return params.has('knowledgeid') || params.has('knowledgeId') || /^work-/i.test(taskId) || params.has('originJobId') || params.has('originjobid');
+  } catch { return false; }
+}
 function kind(doc) {
   const path = pathOf(doc);
   if (/\/(?:exam|exam-ans)\//i.test(path) || doc.querySelector('#examId, input[name="examId"]')) return 'none';
   if (/\/(?:mooc2\/)?work\/(?:view|lookWork|viewWork|viewWorkNew|review|workAnswer|preview)(?:\/|$)/i.test(path)) return 'review';
-  if (/\/(?:mooc2\/)?work\/(?:dowork|doHomeWorkNew|doHomeWork|answer)(?:\/|$)/i.test(path)) return 'answer';
+  // 章节任务也复用 doHomeWorkNew，但应沿用章节测验开关与提交策略。
+  // knowledge/job 参数来自卡片内任务 iframe，不代表独立课后作业入口。
+  if (/\/(?:mooc2\/)?work\/(?:dowork|doHomeWorkNew|doHomeWork|answer)(?:\/|$)/i.test(path)) return chapterTask(doc) ? 'none' : 'answer';
   if (/\/work\/(?:list|stu-work|workList)(?:\/|$)/i.test(path)) return 'list';
   if (/\/work\/(?:detail|workDetail)(?:\/|$)/i.test(path) || doc.querySelector('[data-cx-homework-detail]')) return 'detail';
   return 'none';
@@ -113,4 +123,4 @@ function listEntries(doc, visible) {
   }
   return entries;
 }
-module.exports = { ROOTS, SAVE_FEEDBACK, kind, identity, readonly, questionId, heading, hint, roots, manifest, control, saveEvidence, submissionState, workURL, listEntries };
+module.exports = { ROOTS, SAVE_FEEDBACK, chapterTask, kind, identity, readonly, questionId, heading, hint, roots, manifest, control, saveEvidence, submissionState, workURL, listEntries };

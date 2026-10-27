@@ -4,14 +4,13 @@ function editorSplitter({host, panel, editor, body, handle, button, ratio, save,
   let drag = null;
   let disposed = false;
   let frame = 0;
-  function bounds() {
+  function bounds(collapsed = false) {
+    host.dataset.bottomCollapsed = String(collapsed);
     const fixed = [...panel.children].filter(node => node !== editor && node !== body && !node.hidden)
       .reduce((sum, node) => sum + node.getBoundingClientRect().height, 0);
     const available = Math.max(0, panel.clientHeight - fixed);
     const min = Math.min(120, available * .4);
-    // Keep a small amount of room for the separator/footer borders when the
-    // lower area is collapsed, so the bottom action row remains clickable.
-    const max = Math.max(min, available - Math.min(8, available * .05));
+    const max = collapsed ? available : Math.max(min, available - Math.min(8, available * .05));
     return {available, min, max};
   }
   function updateButton() {
@@ -24,7 +23,7 @@ function editorSplitter({host, panel, editor, body, handle, button, ratio, save,
   }
   function apply() {
     if (disposed || !host.isConnected || !panel.getClientRects().length || editor.matches(':fullscreen')) return;
-    const {available, min, max} = bounds();
+    const {available, min, max} = bounds(value !== null && value >= .999);
     if (!available) return;
     const desired = value ?? (host.dataset.docked === 'true' && host.dataset.tab === 'test' ? .62 : .5);
     const height = Math.max(min, Math.min(max, available * desired));
@@ -42,12 +41,15 @@ function editorSplitter({host, panel, editor, body, handle, button, ratio, save,
     if (!available) return;
     const clamped = Math.max(min, Math.min(max, height));
     value = height >= max ? 1 : Math.min(1, Math.max(.15, clamped / available));
-    if (value < .999) restoreValue = value;
+    if (value < .999 && !drag) restoreValue = value;
     apply(); if (commit) save(value);
   }
   function down(event) {
     if (event.button !== 0 || event.target.closest('button')) return;
-    drag = {id:event.pointerId,y:event.clientY,height:editor.getBoundingClientRect().height};
+    if (value === null || value < .999) restoreValue = value ?? (host.dataset.docked === 'true' && host.dataset.tab === 'test' ? .62 : .5);
+    const height = value !== null && value >= .999 ? bounds().max : editor.getBoundingClientRect().height;
+    apply();
+    drag = {id:event.pointerId,y:event.clientY,height};
     handle.setPointerCapture(event.pointerId); handle.classList.add('dragging');event.preventDefault();
   }
   function move(event) {
@@ -56,13 +58,14 @@ function editorSplitter({host, panel, editor, body, handle, button, ratio, save,
   function end(event) {
     if (drag?.id !== event.pointerId) return;
     drag=null;handle.classList.remove('dragging');
+    if (value !== null && value < .999) restoreValue = value;
     try{handle.releasePointerCapture(event.pointerId);}catch{}
     if(value!==null)save(value);
   }
   function key(event) {
     if (!['ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
     event.preventDefault();const {min,max}=bounds();
-    const height=editor.getBoundingClientRect().height;
+    const height=value !== null && value >= .999 ? max : editor.getBoundingClientRect().height;
     set(event.key==='Home'?min:event.key==='End'?max:height+(event.key==='ArrowDown'?1:-1)*(event.shiftKey?40:10),true);
   }
   function toggleBottom() {
@@ -74,14 +77,20 @@ function editorSplitter({host, panel, editor, body, handle, button, ratio, save,
       set(bounds().available, true);
     }
   }
+  const tabs = panel.querySelector('nav');
+  function openTab(event) {
+    if (value !== null && value >= .999 && event.target.closest('[role=tab]')) toggleBottom();
+  }
   const observer = new ResizeObserver(schedule);
   observer.observe(panel);
   for(const node of panel.children)if(node!==editor&&node!==body)observer.observe(node);
   for(const [name,callback] of [['pointerdown',down],['pointermove',move],['pointerup',end],['pointercancel',end],['lostpointercapture',end],['keydown',key]])handle.addEventListener(name,callback);
   button?.addEventListener('click', toggleBottom);
+  tabs?.addEventListener('click', openTab);
   schedule();
   return {refresh:schedule,destroy(){disposed=true;observer.disconnect();cancelAnimationFrame(frame);
     button?.removeEventListener('click', toggleBottom);
+    tabs?.removeEventListener('click', openTab);
     for(const [name,callback] of [['pointerdown',down],['pointermove',move],['pointerup',end],['pointercancel',end],['lostpointercapture',end],['keydown',key]])handle.removeEventListener(name,callback);
   }};
 }

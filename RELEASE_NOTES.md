@@ -1,3 +1,11 @@
+Learnova 0.1.8
+
+- Fix chapter quizzes that reuse the homework URL being blocked by the independent-homework switch. Chapter task frames now retain chapter answering and submission settings.
+- Verified the fix in the current course window: four questions were recognized and filled using three N1 results and one AI result, with random fallback and automatic submission disabled. No quiz was submitted.
+- Allow Pintia's horizontal separator to reach the bottom of the workbench, collapsing lower content and action buttons while keeping the tab bar accessible.
+- Restore the previous editor height through the collapse button or a tab click. Preserve collapsed state across startup and window resizing, with mouse and keyboard support in docked and floating modes.
+- Rebuild all GitHub, ScriptCat and Greasy Fork editions at the same version. Pintia isolated regression checks: 71/71 passed.
+
 Learnova 0.1.7
 
 - Fix course catalog completion detection for the platform's newer `icon_yiwanc` green-check marker and zero remaining-task counters.
