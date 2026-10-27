@@ -2,6 +2,13 @@
 
 All editions currently use **0.1.8**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
 
+## 0.1.8 verification (2026-10-27)
+
+- [GitHub release v0.1.8](https://github.com/RayrenSX/Learnova/releases/tag/v0.1.8) was published from `ebf1344`; the [tagged build](https://github.com/RayrenSX/Learnova/actions/runs/40440465804) passed. All eight release assets report 0.1.8, pass syntax checks, and match the local builds after line-ending normalization.
+- The release includes chapter quiz iframe classification and Pintia's collapsible lower panel. Local Pintia regression checks passed 71/71, study tools 12/12, and focused chapter/homework checks 2/2. Update and distribution checks passed. The tagged CI also ran the new chapter iframe regression with the existing page/audit checks.
+- ScriptCat 8739 and Greasy Fork Chaoxing 602230 / Pintia 602231 were manually synchronized through their existing source-sync forms. Greasy Fork reported successful synchronization for both listings. All three public installation files were downloaded: version 0.1.8 and valid syntax confirmed, with code bodies matching their GitHub release assets after excluding platform metadata.
+- Automatic synchronization and the existing stable source/description URLs remain configured. The current course window was tested before publication: 4/4 questions filled via N1 and AI; no quiz was submitted.
+
 ## 0.1.7 verification (2026-10-26)
 
 GitHub release v0.1.7 and its tagged build succeeded. ScriptCat 8739, Greasy Fork Chaoxing 602230 and Pintia 602231 were synchronized; all three public installation files report 0.1.7. The combined and Chaoxing downloads include conditional vote-model fields and unified catalog completion detection. Targeted voting/catalog regressions, syntax, update and distribution checks passed. On the supplied live course catalog, the revised detector recognized all 48 chapters as completed, consistent with the platform's 96/96 task points.
