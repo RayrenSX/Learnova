@@ -8,7 +8,7 @@ Chapter export, programming-result recognition, all-course task parsing, manual 
 
 - [GitHub release v0.1.9](https://github.com/RayrenSX/Learnova/releases/tag/v0.1.9) was published from `8907972`; the [tagged workflow](https://github.com/RayrenSX/Learnova/actions/runs/40636910379) and main build both passed. GitHub's SHA-256 digests and byte counts for all eight assets match the local builds after LF normalization.
 - ScriptCat 8739 was synchronized through its existing source-sync form. Its public page and description show 0.1.9. The public installation file returns HTTP 200, passes syntax checks and matches the combined release code body after excluding platform metadata and normalizing line endings.
-- Greasy Fork source synchronization for Chaoxing 602230 and Pintia 602231 remains pending: the current network times out or resets connections to Greasy Fork. Existing automatic sync sources still point to the latest GitHub assets. This record does not claim that either listing has reached 0.1.9.
+- Greasy Fork Chaoxing 602230 and Pintia 602231 were synchronized through their existing source-sync forms after network access was restored. Both returned "Script successfully synced." Their public pages and descriptions show 0.1.9. Both public installation files were downloaded, pass syntax checks and match the corresponding GitHub release code bodies after excluding platform metadata and normalizing line endings. Existing automatic synchronization and source/description URLs remain configured.
 
 ## 0.1.8 verification (2026-10-27)
 
