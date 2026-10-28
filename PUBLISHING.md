@@ -2,9 +2,13 @@
 
 All editions currently use **0.1.9**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
 
-## 0.1.9 local verification (2026-10-28)
+## 0.1.9 verification (2026-10-28)
 
 Chapter export, programming-result recognition, all-course task parsing, manual blank lookup and recheck-log fixes passed local checks: study tools 16/16, selected integration scenarios 26/26, and the answer-recheck regression 1/1. All editions build at 0.1.9; syntax, update and distribution checks passed. Full feature acceptance remains incomplete as described in the release notes.
+
+- [GitHub release v0.1.9](https://github.com/RayrenSX/Learnova/releases/tag/v0.1.9) was published from `8907972`; the [tagged workflow](https://github.com/RayrenSX/Learnova/actions/runs/40636910379) and main build both passed. GitHub's SHA-256 digests and byte counts for all eight assets match the local builds after LF normalization.
+- ScriptCat 8739 was synchronized through its existing source-sync form. Its public page and description show 0.1.9. The public installation file returns HTTP 200, passes syntax checks and matches the combined release code body after excluding platform metadata and normalizing line endings.
+- Greasy Fork source synchronization for Chaoxing 602230 and Pintia 602231 remains pending: the current network times out or resets connections to Greasy Fork. Existing automatic sync sources still point to the latest GitHub assets. This record does not claim that either listing has reached 0.1.9.
 
 ## 0.1.8 verification (2026-10-27)
 
