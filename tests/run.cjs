@@ -1171,6 +1171,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     assert.equal(await page.locator('[data-id="1"] input:checked').inputValue(), 'B');
     assert.deepEqual(await page.locator('[data-id="2"] input:checked').evaluateAll(nodes => nodes.map(n => n.value)), ['A', 'C']);
     assert.equal(await page.evaluate(() => window.aiRequests.length), 3);
+    assert.equal(await page.locator('#cx-video-helper-host #logs').evaluate(node => (node.textContent.match(/检测到已有答案，重新查题并按查询结果替换/g)||[]).length),3);
   });
   await test('重新查题保留查询期间的手动修改，失败时保留原答案', async () => {
     const body = choice(1, '重查保护', ['甲', '乙', '丙']).replace('value="A"', 'value="A" checked');

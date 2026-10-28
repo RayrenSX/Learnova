@@ -97,6 +97,11 @@ module.exports = async ({test,setup,choice,blank,checked,logContains,aiSettings,
     assert.deepEqual(await page.evaluate(()=>[window.ran||0,window.saved||0,window.specialSubmits||0]),[1,1,1]);
     assert.equal(await page.evaluate(()=>window.nextClicks),0);
   });
+  await test('P1P2 编程运行：识别原生Accepted反馈且结果不改变题目身份',async()=>{
+    const body=codeQuestion().replace('window.ran=(window.ran||0)+1',"document.querySelector('.questionLi').insertAdjacentHTML('beforeend', '<div class=compilation_result><table><tr><th>结果</th></tr><tr><td><div class=result-container><textarea class=runResult readonly>Accepted（运行通过）</textarea></div></td></tr></table></div>')")+cm;
+    const {page}=await setup(body,{...aiSettings,specialCodeAI:true},[],{answer:draft});await logContains(page,'编程代码草稿已回读');await page.locator('#cx-video-helper-host #tab-course').click();await page.locator('#cx-video-helper-host #taskList button').filter({hasText:'运行测试'}).click();
+    await page.locator('#cx-video-helper-host #taskList').filter({hasText:'平台已反馈运行测试成功'}).waitFor();assert.equal(await page.locator('#cx-video-helper-host #answeredCount').textContent(),'1');assert.equal(await page.locator('#cx-video-helper-host #pendingCount').textContent(),'0');assert.equal(await page.evaluate(()=>window.aiRequests.length),1);assert.equal(await page.evaluate(()=>window.nextClicks),0);
+  });
   await test('P1P2 特殊作业：附件与录音调用原生控件，未完成不切章',async()=>{
     const {page}=await setup('<div data-cx-special><h3>语音和文件作业</h3><input type="file"><div data-record-audio><button onclick="window.recording=true">开始录音</button><button onclick="window.recording=false">停止录音</button></div></div><div class="ans-job-finished"></div>',{autoAnswer:false});
     await page.locator('#cx-video-helper-host #tab-course').click();
@@ -138,6 +143,11 @@ module.exports = async ({test,setup,choice,blank,checked,logContains,aiSettings,
     assert.equal(await page.locator('#cx-video-helper-host #manualQuestion').inputValue(),'手动搜题题干');
     await page.locator('#cx-video-helper-host #manualOptions').fill('甲\n乙');await page.locator('#cx-video-helper-host #manualSearch').click();
     await page.locator('#cx-video-helper-host #manualResult').filter({hasText:'本地题库'}).waitFor();assert.equal(await page.locator('.TiMu input:checked').count(),0);
+  });
+  await test('P1P2 手动搜题：两空本地答案按指定空数查询',async()=>{
+    const {page}=await setup(choice(1,'页面题目',['甲','乙']),{autoAnswer:false},[{question:'两个空',type:'blank',answers:['第一个空的答案','第二个空的答案']}]);
+    const ui=page.locator('#cx-video-helper-host');await ui.locator('#searchSettings > summary').click();await ui.locator('#manualQuestion').fill('两个空');await ui.locator('#manualType').selectOption('blank');await ui.locator('#manualBlanks').fill('2');await ui.locator('#manualSearch').click();
+    await ui.locator('#manualResult').filter({hasText:'本地题库'}).waitFor();const result=JSON.parse(await ui.locator('#manualResult').textContent());assert.deepEqual(result.answers,['第一个空的答案','第二个空的答案']);assert.equal(await page.locator('.TiMu input:checked').count(),0);
   });
   await test('P1P2 虚拟分页：从隐藏题号集取得题量，保存两页后才提交',async()=>{
     const second=choice(2,'虚拟第二题',['甲','乙']);

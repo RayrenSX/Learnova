@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova for Chaoxing
 // @namespace    local.xuexitong.helper
-// @version      0.1.8
+// @version      0.1.9
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @description  学习通课程目录、视频音频播放、阅读、题库与可配置 AI 辅助。

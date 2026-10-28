@@ -32,6 +32,10 @@ function unzipStored(buffer){
    assert.equal(tasks[0].state,'已结束');assert.equal(tasks[1].state,'已完成');assert.equal(tasks[0].deadline,1700000000000);assert.match(tasks[0].url,/pageHeader=8/);
    assert.throws(()=>Dashboard.coursesFrom({status:false}),/格式/);
  });
+ await check('Live activity types distinguish discussion, pick-student, voting and AI practice',()=>{
+   const tasks=Dashboard.tasksFrom({data:{activeList:[{id:1,activeType:5},{id:2,activeType:11},{id:3,activeType:43},{id:4,activeType:77}]}},{id:'1',clazz:'2',name:'课程'});
+   assert.deepEqual(tasks.map(t=>t.type),['主题讨论','选人','投票','AI实践']);
+ });
  await check('Pintia set exporter uses only credentialed GETs, preserves raw Markdown and refuses missing exams or partial lists',async()=>{
    const calls=[],signal=new AbortController().signal;
    const read=async(url,options)=>{calls.push({url,options});const data=url.endsWith('/exams')?{exam:{id:'22'}}:url.endsWith('problem-summaries')?{summaries:{7:{}}}:{problemSetProblems:[{id:'3',label:'7-1',title:'代码题',content:'公式 $x^2$\n```c\nint main(){}\n```'}]};return {ok:true,json:async()=>data};};
@@ -64,6 +68,15 @@ function unzipStored(buffer){
        document.querySelector('.analysisDiv').insertAdjacentHTML('beforeend','<img src="/answer-diagram.png">');const items=StudyTools.questions(document);return {items,practice:StudyTools.markdown('练习',items,false)};});
      assert.equal(data.items.length,1);assert.equal(data.items[0].answer,'B');assert.equal(data.items[0].userAnswer,'A');assert.equal(data.items[0].images[0].url,'https://mooc1.chaoxing.com/diagram.png');assert.equal(data.items[0].answerImages.length,1);assert.ok(!data.practice.includes('完整解析'));assert.ok(!data.practice.includes('参考答案'));assert.ok(!data.practice.includes('answer-diagram'));
    });
+   await check('Live chapter quiz exports ARIA and hidden-field answers without duplicate option labels',async()=>{
+     const data=await page.evaluate(()=>{document.body.innerHTML='<div class="TiMu"><div class="Zy_TItle">章节单选</div><ul class="Zy_ulTop"><li role="radio"><label class="before">A</label><a class="after">第一项</a></li><li role="radio" aria-checked="true"><label class="before">B</label><a class="after">第二项</a></li></ul><input type="hidden" name="answer123" value="B"><input type="hidden" name="answertype123" value="0"></div><div class="TiMu"><h3>判断题</h3><ul class="Zy_ulTop"><li>A. 对</li><li>B. 错</li></ul><input type="hidden" name="answer456" value="false"></div>';
+       const items=StudyTools.questions(document);return {items,withAnswers:StudyTools.markdown('章节',items),practice:StudyTools.markdown('章节',items,false)};});
+     assert.deepEqual(data.items[0].options,['第一项','第二项']);assert.equal(data.items[0].userAnswer,'B');assert.equal(data.items[0].id,'123');assert.equal(data.items[1].id,'456');assert.equal(data.items[1].userAnswer,'false');assert.deepEqual(data.items[1].options,['对','错']);assert.match(data.withAnswers,/我的作答\n\nB/);assert.ok(!/我的作答|false/.test(data.practice));assert.ok(!data.withAnswers.includes('A. A'));
+   });
+   await check('Chapter export uses answer field identities and visible question counts when data stores question types',async()=>{
+     const data=await page.evaluate(async()=>{const doc=new DOMParser().parseFromString('<input id="totalQuestionNum" value="encrypted-count"><p>题量: 2 满分: 100.0</p><div class="TiMu" data="0"><h3>第一题</h3><input type="hidden" name="answer123" value="A"></div><div class="TiMu" data="0"><h3>第二题</h3><input type="hidden" name="answer456" value="B"></div>','text/html');const base=doc.createElement('base');base.href='https://mooc1.chaoxing.com/work?knowledgeid=7';doc.head.append(base);const result=await StudyTools.collectDocument(doc,new AbortController().signal);doc.body.insertAdjacentHTML('beforeend','<p>题量: 3 满分: 100.0</p>');let conflict='';try{StudyTools.documentCount(doc);}catch(e){conflict=e.message;}return {result,conflict};});
+     assert.equal(data.result.complete,true);assert.equal(data.result.expected,2);assert.deepEqual(data.result.items.map(item=>item.id),['123','456']);assert.match(data.conflict,/冲突/);
+   });
    await check('Full document export follows read-only same-document pagination, verifies counts, rejects missing pages and cancels',async()=>{
      const result=await page.evaluate(async()=>{
        const doc=new DOMParser().parseFromString('<input id="totalQuestionNum" value="2"><div class="questionLi" data="q1"><h3>第一页</h3></div><div class="pagination"><a href="?workId=7&page=2">2</a><a href="https://other.example/work?workId=7">外部</a></div>','text/html');const base=doc.createElement('base');base.href='https://mooc1.chaoxing.com/work?workId=7';doc.head.append(base);
@@ -81,6 +94,13 @@ function unzipStored(buffer){
        return CourseDashboard.tasksFromDOM(document);
      });
      assert.equal(tasks.length,2);assert.equal(tasks[0].title,'作业一');assert.equal(tasks[0].course,'课程甲');assert.equal(tasks[0].state,'待核对');assert.equal(tasks[1].state,'已完成');assert.equal(tasks[1].type,'考试');assert.ok(tasks[0].deadline);
+   });
+   await check('Live all-course homework rows preserve ARIA-hidden content and derive approximate remaining deadlines',async()=>{
+     const tasks=await page.evaluate(()=>{
+       document.body.innerHTML='<ul><li onclick="goTask(this)" data="https://mooc1-api.chaoxing.com/mooc-ans/android/mtaskmsgspecial?courseId=1&clazzId=2&type=work"><div role="option"><p aria-hidden="true">实验报告03</p><span class="status" aria-hidden="true">未提交</span><span aria-hidden="true">《程序设计基础...》</span><span class="fr" aria-hidden="true">剩余135小时26分钟</span><span aria-label="作业名称实验报告03"></span></div></li></ul>';
+       return CourseDashboard.tasksFromDOM(document,1700000000000);
+     });
+     assert.equal(tasks.length,1);assert.equal(tasks[0].title,'实验报告03');assert.equal(tasks[0].course,'《程序设计基础...》');assert.equal(tasks[0].state,'待核对');assert.equal(tasks[0].deadline,1700000000000+(135*60+26)*60000);assert.equal(tasks[0].deadlineApproximate,true);
    });
    await check('DOCX XML is well-formed and media relationships refer to included files',async()=>{
      const entries=unzipStored(docx),xmls=Object.entries(entries).filter(([name])=>/\.xml$|\.rels$/.test(name)).map(([name,body])=>({name,text:body.toString()}));

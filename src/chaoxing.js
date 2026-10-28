@@ -822,7 +822,7 @@
   function editorsOf(root) {
     const readGroup = (group) => {
       const direct = [...group.querySelectorAll('textarea, input[type="text"], input:not([type]), [contenteditable="true"]')]
-        .filter((element) => !element.closest('[data-cx-ignore]'));
+        .filter((element) => !element.closest('[data-cx-ignore], .compilation_result, .run-result, .compile-result, .test-result, [data-run-state]'));
       const frameBodies = [];
       for (const frame of group.querySelectorAll('iframe')) {
         try {
@@ -2128,7 +2128,7 @@
           }
           if (record.status !== 'new') continue;
           if (hasInput(q) && !settings.overwriteAnswers) { record.status = 'manual'; log('检测到已填写的题目，保留现有答案'); continue; }
-          if (hasInput(q)) log('检测到已有答案，重新查题并按查询结果替换');
+          if (hasInput(q) && !record.recheckNotified) { record.recheckNotified = true; log('检测到已有答案，重新查题并按查询结果替换'); }
           // 视频弹题优先于章节题目。
           if (q.popup) nextQuestions.unshift({ q, record }); else nextQuestions.push({ q, record });
         }
@@ -2357,7 +2357,7 @@
             <div class="row"><label for="requireWebSearch">每题先让 AI 联网核查</label><input type="checkbox" id="requireWebSearch"></div>
             <p class="hint">默认关闭，可按需开启。开启后每题必须由程序取得真实搜索证据。内置模式核验 Responses 搜索工具和来源；独立模式先请求 Tavily 再交给当前模型。搜索失败或无结果时停止，不随机兜底。</p>
             <div class="row"><label for="overwriteAnswers">已填写题目也重新查题并替换</label><input type="checkbox" id="overwriteAnswers"></div>
-            <p class="hint">默认开启。已有答案也会重新查询；查询失败时保留原答案，开启随机兜底时可随机替换单选/多选/判断。查询期间手动修改的内容仍保留。</p>
+            <p class="hint">默认关闭。开启后已有答案也会重新查询；查询失败时保留原答案，开启随机兜底时可随机替换单选/多选/判断。查询期间手动修改的内容仍保留。</p>
             <div class="row"><label for="randomFallback">无可用答案时随机单选 / 多选 / 判断</label><input type="checkbox" id="randomFallback"></div>
             <div class="row"><label for="compareRandomConfidence">低信心 AI 高于随机基准时仍采用</label><input type="checkbox" id="compareRandomConfidence"></div>
             <div class="row"><label for="fuzzyMatching">唯一高分相似选项匹配</label><input type="checkbox" id="fuzzyMatching"></div>

@@ -158,7 +158,7 @@ function specialControls(root) {
 }
 const ACTION_FEEDBACK = {
   '暂存':'#saveSuccessContent, #dialogToast, .save-result, [data-save-state]',
-  '运行测试':'.run-result, .compile-result, .test-result, [data-run-state]',
+  '运行测试':'.run-result, .compile-result, .test-result, [data-run-state], .compilation_result .runResult[readonly]',
   '提交':'.submit-result, [data-submit-state], [data-submit-result]',
   '签到':'.sign-success, #signSuccess, [data-sign-state]',
 };
@@ -168,12 +168,12 @@ function actionFeedback(root, action) {
   const selector = ACTION_FEEDBACK[action];
   if (!selector) return [];
   return nodes(scope,selector).filter(node => node.matches('[data-save-state="success"], [data-run-state="success"], [data-submit-state="success"], [data-sign-state="success"], .sign-success, #signSuccess')
-    || (action === '暂存' ? /保存成功|暂存成功/ : action === '运行测试' ? /运行完成|编译成功|测试完成/ : action === '签到' ? /签到成功/ : /提交成功/).test(text(node)));
+    || (action === '暂存' ? /保存成功|暂存成功/ : action === '运行测试' ? /运行完成|编译成功|测试完成|^Accepted(?:[（(]|$)|^运行通过$/i : action === '签到' ? /签到成功/ : /提交成功/).test(text(node)));
 }
 function taskTitle(root) { return text(root.querySelector('[data-question-title], .mark_name, .problem-title, .question-title, h1, h2, h3')) || '当前任务'; }
 function statement(root, {bounded=true}={}) {
   const clone = (root.nodeType === 9 ? root.querySelector('[data-discussion-topic], .topicDetail_main, .topic-content, .topicDetail, .topic_content') || root.body : root).cloneNode(true);
-  clone.querySelectorAll('script, style, button, input, textarea, iframe, [contenteditable], .CodeMirror, .cm-editor, .ace_editor, .monaco-editor, #cx-video-helper-host').forEach(node => node.remove());
+  clone.querySelectorAll('script, style, button, input, textarea, iframe, [contenteditable], .CodeMirror, .cm-editor, .ace_editor, .monaco-editor, .compilation_result, .run-result, .compile-result, .test-result, [data-run-state], #cx-video-helper-host').forEach(node => node.remove());
   clone.querySelectorAll('p, div, pre, li, tr, h1, h2, h3').forEach(node => node.append('\n'));
   const value = String(clone.textContent || '').trim();
   if (bounded && value.length > 40000) throw new Error('题目超过处理范围，请选中对应题目单独处理');

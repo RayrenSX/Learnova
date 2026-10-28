@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova for Pintia
 // @namespace    local.pintia.code-helper
-// @version      0.1.8
+// @version      0.1.9
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @description  根据题目诊断现有代码，解释错因并生成修正代码；独立填写适配，不提交答案。
@@ -37,7 +37,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.8",
+        version: "0.1.9",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -301,20 +301,32 @@ StudyHelperUpdate.standalone = true;
             heading = node.cloneNode(true);
             heading.querySelectorAll('.mark_answer,.correctAnswerContent,.correct-answer,.rightAnswer,[data-role="correct-answer"],.correctAnswer,.correctAnswerBx,.myAnswerBx,.user-answer,.analysisDiv,.mark_answer_analysis,.analysis,.answer-analysis,.Zy_ulTop,.mark_letter,.choices,.options,.option-list,.optionList,.option-item,.answerBg,[data-cx-option],input,textarea,[contenteditable=true]').forEach((n) => n.remove());
           }
-          const options = [...node.querySelectorAll('.Zy_ulTop li,.mark_letter li,.choices li,.option,.subject_item,.answerBg,[data-cx-option],.nodeLab,.option-item,.option-result,.optionList > div,[class*="index-module__optionBody"]')].filter((n, i, a) => !a.some((other) => other !== n && other.contains(n))).map(readText);
+          const optionNodes = [...node.querySelectorAll('.Zy_ulTop li,.mark_letter li,.choices li,.option,.subject_item,.answerBg,[data-cx-option],.nodeLab,.option-item,.option-result,.optionList > div,[class*="index-module__optionBody"]')].filter((n, i, a) => !a.some((other) => other !== n && other.contains(n)));
+          const options = optionNodes.map((n, i) => {
+            const content = n.querySelector(":scope > .after");
+            if (content) return readText(content);
+            return readText(n).replace(new RegExp(`^${String.fromCharCode(65 + i)}[.．、:：)）]\\s*`), "");
+          });
           const answerNode = node.querySelector('.correctAnswerContent,.correct-answer,.rightAnswer,[data-role="correct-answer"],.correctAnswerBx .answerCon,.mark_answer .colorGreen,.correctAnswer,[data-correct-answer]');
           const userNode = node.querySelector(".myAnswerBx .answerCon,.user-answer,.mark_answer .colorDeep");
-          const selected = [...node.querySelectorAll("input:checked")].map((n) => n.value);
+          const selected = optionNodes.flatMap((n, i) => {
+            const marked = (e) => e.matches('input:checked,[aria-checked="true"],[aria-selected="true"]') || [...e.classList].some((name) => name === "selected" || /^check_answer(?:_|$)/.test(name));
+            return marked(n) || [...n.querySelectorAll("input,[aria-checked],[aria-selected],[class]")].some(marked) ? [String.fromCharCode(65 + i)] : [];
+          });
+          if (!selected.length) selected.push(...[...node.querySelectorAll("input:checked")].map((n) => n.value));
+          const answerFields = [...node.querySelectorAll("input[type=hidden]")].filter((n) => /^answer\d+$/.test(n.name || n.id));
+          const hiddenAnswers = answerFields.map((n) => n.value).filter(Boolean);
           const inputs = [...node.querySelectorAll("textarea,input[type=text],input:not([type]),[contenteditable=true]")].map((n) => n.value ?? n.textContent).filter(Boolean);
           const imageNodes = [...node.querySelectorAll("img")].filter((n) => !n.matches("[aria-hidden=true],[role=presentation],.icon,.avatar,.loading"));
           const inAnswer = (n) => Boolean(n.closest('.mark_answer,.correctAnswerContent,.correct-answer,.rightAnswer,[data-role="correct-answer"],.correctAnswerBx,.myAnswerBx,.analysisDiv,.mark_answer_analysis,.analysis,.answer-analysis'));
           const imageRecord = (n) => ({ url: imageURL(n.currentSrc || n.getAttribute("src"), doc.baseURI), alt: n.alt || "题图" });
+          const answerId = answerFields[0] && (answerFields[0].name || answerFields[0].id).slice("answer".length);
           return {
-            id: node.dataset.questionid || node.dataset.questionId || node.dataset.id || node.getAttribute("data") || node.id || "",
+            id: node.dataset.questionid || node.dataset.questionId || answerId || node.dataset.id || node.getAttribute("data") || node.id || "",
             title: readText(heading) || `题目 ${index + 1}`,
             options,
             answer: answerNode ? readText(answerNode) : "",
-            userAnswer: userNode ? readText(userNode) : [...selected, ...inputs].join("\n"),
+            userAnswer: userNode ? readText(userNode) : [...selected.length ? selected : hiddenAnswers, ...inputs].join("\n"),
             analysis: readText(node.querySelector(".analysisDiv,.mark_answer_analysis,.analysis,.answer-analysis")),
             images: imageNodes.filter((n) => !inAnswer(n)).map(imageRecord).filter((n) => n.url),
             answerImages: imageNodes.filter(inAnswer).map(imageRecord).filter((n) => n.url)
@@ -324,6 +336,14 @@ StudyHelperUpdate.standalone = true;
       function documentCount(doc) {
         const nodes = [...doc.querySelectorAll("#totalQuestionNum,#questionCount,input[name=totalQuestionNum],input[name=questionCount],[data-question-count],[data-total-question]")];
         const counts = nodes.map((node) => Number(node.value || node.getAttribute("data-question-count") || node.getAttribute("data-total-question"))).filter((count) => Number.isInteger(count) && count > 0 && count <= 1e4);
+        for (const node of doc.querySelectorAll("p")) {
+          if (node.closest(QUESTION_ROOTS)) continue;
+          const match = node.textContent.trim().match(/^题量\s*[:：]\s*(\d+)(?=\s|满分|$)/);
+          if (match) {
+            const count = Number(match[1]);
+            if (count > 0 && count <= 1e4) counts.push(count);
+          }
+        }
         const cards = [...doc.querySelectorAll(".answerCard [data-questionid],.answerCard [data-question-id],.answer-card [data-question-id],.topicNumber_list li[data]")];
         const ids = cards.map((node) => node.getAttribute("data-questionid") || node.getAttribute("data-question-id") || node.getAttribute("data")).filter(Boolean);
         if (!ids.length) {
@@ -31055,7 +31075,7 @@ ${example.output}`);
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.8",
+        version: "0.1.9",
         private: true,
         description: "学习通播放、阅读与答题和 Pintia 代码工作台合并用户脚本，按网站自动加载",
         main: "学习助手完整版.user.js",

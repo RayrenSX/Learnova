@@ -27,23 +27,28 @@ function tasksFrom(json,course) {
   const list=json?.data?.activeList||json?.activeList||(Array.isArray(json?.data)?json.data:Array.isArray(json)?json:null);
   if(!Array.isArray(list))throw new Error('任务列表格式不支持');
   return list.map((item,i)=>{
-    const type=({2:'签到',4:'抢答',5:'选人',11:'投票',14:'问卷',17:'直播',23:'随堂练习',35:'分组任务',42:'随堂练习',43:'评分',47:'作业',64:'笔记'})[item.activeType??item.type]||'课程活动';
+    const type=({2:'签到',4:'抢答',5:'主题讨论',11:'选人',14:'问卷',17:'直播',23:'随堂练习',35:'分组任务',42:'随堂练习',43:'投票',47:'作业',64:'笔记',77:'AI实践'})[item.activeType??item.type]||'课程活动';
     const url=new URL('https://mooc1.chaoxing.com/visit/stucoursemiddle');url.search=new URLSearchParams({ismooc2:'1',courseid:course.id,clazzid:course.clazz,pageHeader:type==='作业'?'8':'0'}).toString();
     return {id:`${course.id}:${course.clazz}:${item.id||item.activeId||i}`,course:course.name,title:String(item.nameOne||item.name||item.title||type),type,
       // Ended is not proof of submission or completion.
       state:item.isSubmit===true||item.isCompleted===true?'已完成':Number(item.status)===2?'已结束':Number(item.status)===1?'进行中':'未开始',deadline:dateValue(item.endTime),url:url.href};
   });
 }
-function tasksFromDOM(doc) {
+function tasksFromDOM(doc,readAt=Date.now()) {
   const selectors='a[href*="work"],a[href*="exam"],a[href*="active"]';
-  return [...doc.querySelectorAll(selectors+',ul.nav > li[data],ul.ks_list > li[data],table.dataTable tr.dataTr')].flatMap((link,i)=>{
+  return [...doc.querySelectorAll(selectors+',ul.nav > li[data],ul.ks_list > li[data],li[data][onclick*="goTask"],table.dataTable tr.dataTr')].flatMap((link,i)=>{
     const row=link.closest('li,tr,.work-item,.exam-item,.task-item')||link;
     const action=link.querySelector('a[onclick]'),literal=/\bgo\(['"]([^'"]+)['"]\)/.exec(action?.getAttribute('onclick')||'')?.[1];
     const url=safeURL(link.getAttribute('href')||link.getAttribute('data')||literal,doc.baseURI,hostAllowed);
-    if(!url||!textOf(link))return [];
+    const title=link.getAttribute('title')||textOf(row.querySelector('[role=option] p,dt,td:nth-child(2)'))||textOf(link);
+    if(!url||!title)return [];
     const dates=row.textContent.match(/\d{4}[-/]\d{1,2}[-/]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?/g)||[];
-    return [{id:url,course:row.dataset.courseName||row.querySelector('[role=option] span:nth-of-type(2)')?.textContent||'全部课程',title:link.getAttribute('title')||textOf(row.querySelector('[role=option] p,dt,td:nth-child(2)'))||textOf(link),type:/exam/.test(url)||row.matches('tr.dataTr')?'考试':/work/.test(url)?'作业':'课程活动',
-      state:/未提交|未完成|未批阅/.test(row.textContent)?'待核对':/已提交|已完成|已批阅|待批阅/.test(row.textContent)?'已完成':/已结束|已截止/.test(row.textContent)?'已结束':'待核对',deadline:dateValue(row.dataset.deadline||row.querySelector('time')?.dateTime||dates.at(-1)),url}];
+    let deadline=dateValue(row.dataset.deadline||row.querySelector('time')?.dateTime||dates.at(-1));
+    const remaining=row.textContent.match(/剩余\s*(?:(\d+)天)?\s*(?:(\d+)小时)?\s*(?:(\d+)分钟)?/);
+    const approximate=deadline===null&&remaining&&remaining.slice(1).some(value=>value!==undefined);
+    if(approximate)deadline=readAt+((Number(remaining[1]||0)*24+Number(remaining[2]||0))*60+Number(remaining[3]||0))*60000;
+    return [{id:url,course:row.dataset.courseName||row.querySelector('[role=option] span:nth-of-type(2)')?.textContent||'全部课程',title,type:/exam/.test(url)||row.matches('tr.dataTr')?'考试':/work/.test(url)?'作业':'课程活动',
+      state:/未提交|未完成|未批阅/.test(row.textContent)?'待核对':/已提交|已完成|已批阅|待批阅/.test(row.textContent)?'已完成':/已结束|已截止/.test(row.textContent)?'已结束':'待核对',deadline,...(approximate?{deadlineApproximate:true}:{}),url}];
   });
 }
 async function loadDashboard(signal,request,onProgress=()=>{}) {

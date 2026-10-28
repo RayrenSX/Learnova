@@ -1,6 +1,6 @@
 {
   "name": "learnova",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "description": "学习通播放、阅读与答题和 Pintia 代码工作台合并用户脚本，按网站自动加载",
   "main": "学习助手完整版.user.js",

@@ -1,3 +1,13 @@
+Learnova 0.1.9
+
+- Export chapter quiz selections from ARIA and hidden answer fields; preserve question identities and visible question counts, and remove duplicate option labels.
+- Recognize native Accepted programming-test feedback and exclude runtime output from answer editors and question identity.
+- Read current all-course homework rows and activity types; show approximate deadlines derived from the platform's remaining-time display.
+- Respect the requested blank count in manual question-bank lookup, deduplicate answer-recheck logs, and correct the default answer-overwrite hint.
+- Rebuild all GitHub, ScriptCat and Greasy Fork editions at version 0.1.9.
+
+These fixes follow the October 27-28 live checks. Full feature acceptance remains incomplete: HTML topic reading, courseware downloads, newer exam-list requests and some background/search reliability scenarios still need work. Third-party answer accuracy is not guaranteed.
+
 Learnova 0.1.8
 
 - Fix chapter quizzes that reuse the homework URL being blocked by the independent-homework switch. Chapter task frames now retain chapter answering and submission settings.

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova for Chaoxing
 // @namespace    local.xuexitong.helper
-// @version      0.1.8
+// @version      0.1.9
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @description  学习通课程目录、视频音频播放、阅读、题库与可配置 AI 辅助。
@@ -40,7 +40,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.8",
+        version: "0.1.9",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -5536,20 +5536,32 @@ var StudyTools = (() => {
             heading = node.cloneNode(true);
             heading.querySelectorAll('.mark_answer,.correctAnswerContent,.correct-answer,.rightAnswer,[data-role="correct-answer"],.correctAnswer,.correctAnswerBx,.myAnswerBx,.user-answer,.analysisDiv,.mark_answer_analysis,.analysis,.answer-analysis,.Zy_ulTop,.mark_letter,.choices,.options,.option-list,.optionList,.option-item,.answerBg,[data-cx-option],input,textarea,[contenteditable=true]').forEach((n) => n.remove());
           }
-          const options = [...node.querySelectorAll('.Zy_ulTop li,.mark_letter li,.choices li,.option,.subject_item,.answerBg,[data-cx-option],.nodeLab,.option-item,.option-result,.optionList > div,[class*="index-module__optionBody"]')].filter((n, i, a) => !a.some((other) => other !== n && other.contains(n))).map(readText);
+          const optionNodes = [...node.querySelectorAll('.Zy_ulTop li,.mark_letter li,.choices li,.option,.subject_item,.answerBg,[data-cx-option],.nodeLab,.option-item,.option-result,.optionList > div,[class*="index-module__optionBody"]')].filter((n, i, a) => !a.some((other) => other !== n && other.contains(n)));
+          const options = optionNodes.map((n, i) => {
+            const content = n.querySelector(":scope > .after");
+            if (content) return readText(content);
+            return readText(n).replace(new RegExp(`^${String.fromCharCode(65 + i)}[.\uFF0E\u3001:\uFF1A)\uFF09]\\s*`), "");
+          });
           const answerNode = node.querySelector('.correctAnswerContent,.correct-answer,.rightAnswer,[data-role="correct-answer"],.correctAnswerBx .answerCon,.mark_answer .colorGreen,.correctAnswer,[data-correct-answer]');
           const userNode = node.querySelector(".myAnswerBx .answerCon,.user-answer,.mark_answer .colorDeep");
-          const selected = [...node.querySelectorAll("input:checked")].map((n) => n.value);
+          const selected = optionNodes.flatMap((n, i) => {
+            const marked = (e) => e.matches('input:checked,[aria-checked="true"],[aria-selected="true"]') || [...e.classList].some((name) => name === "selected" || /^check_answer(?:_|$)/.test(name));
+            return marked(n) || [...n.querySelectorAll("input,[aria-checked],[aria-selected],[class]")].some(marked) ? [String.fromCharCode(65 + i)] : [];
+          });
+          if (!selected.length) selected.push(...[...node.querySelectorAll("input:checked")].map((n) => n.value));
+          const answerFields = [...node.querySelectorAll("input[type=hidden]")].filter((n) => /^answer\d+$/.test(n.name || n.id));
+          const hiddenAnswers = answerFields.map((n) => n.value).filter(Boolean);
           const inputs = [...node.querySelectorAll("textarea,input[type=text],input:not([type]),[contenteditable=true]")].map((n) => n.value ?? n.textContent).filter(Boolean);
           const imageNodes = [...node.querySelectorAll("img")].filter((n) => !n.matches("[aria-hidden=true],[role=presentation],.icon,.avatar,.loading"));
           const inAnswer = (n) => Boolean(n.closest('.mark_answer,.correctAnswerContent,.correct-answer,.rightAnswer,[data-role="correct-answer"],.correctAnswerBx,.myAnswerBx,.analysisDiv,.mark_answer_analysis,.analysis,.answer-analysis'));
           const imageRecord = (n) => ({ url: imageURL(n.currentSrc || n.getAttribute("src"), doc.baseURI), alt: n.alt || "\u9898\u56FE" });
+          const answerId = answerFields[0] && (answerFields[0].name || answerFields[0].id).slice("answer".length);
           return {
-            id: node.dataset.questionid || node.dataset.questionId || node.dataset.id || node.getAttribute("data") || node.id || "",
+            id: node.dataset.questionid || node.dataset.questionId || answerId || node.dataset.id || node.getAttribute("data") || node.id || "",
             title: readText(heading) || `\u9898\u76EE ${index + 1}`,
             options,
             answer: answerNode ? readText(answerNode) : "",
-            userAnswer: userNode ? readText(userNode) : [...selected, ...inputs].join("\n"),
+            userAnswer: userNode ? readText(userNode) : [...selected.length ? selected : hiddenAnswers, ...inputs].join("\n"),
             analysis: readText(node.querySelector(".analysisDiv,.mark_answer_analysis,.analysis,.answer-analysis")),
             images: imageNodes.filter((n) => !inAnswer(n)).map(imageRecord).filter((n) => n.url),
             answerImages: imageNodes.filter(inAnswer).map(imageRecord).filter((n) => n.url)
@@ -5559,6 +5571,14 @@ var StudyTools = (() => {
       function documentCount(doc) {
         const nodes = [...doc.querySelectorAll("#totalQuestionNum,#questionCount,input[name=totalQuestionNum],input[name=questionCount],[data-question-count],[data-total-question]")];
         const counts = nodes.map((node) => Number(node.value || node.getAttribute("data-question-count") || node.getAttribute("data-total-question"))).filter((count) => Number.isInteger(count) && count > 0 && count <= 1e4);
+        for (const node of doc.querySelectorAll("p")) {
+          if (node.closest(QUESTION_ROOTS)) continue;
+          const match = node.textContent.trim().match(/^题量\s*[:：]\s*(\d+)(?=\s|满分|$)/);
+          if (match) {
+            const count = Number(match[1]);
+            if (count > 0 && count <= 1e4) counts.push(count);
+          }
+        }
         const cards = [...doc.querySelectorAll(".answerCard [data-questionid],.answerCard [data-question-id],.answer-card [data-question-id],.topicNumber_list li[data]")];
         const ids = cards.map((node) => node.getAttribute("data-questionid") || node.getAttribute("data-question-id") || node.getAttribute("data")).filter(Boolean);
         if (!ids.length) {
@@ -5966,20 +5986,32 @@ var CourseDashboard = (() => {
             heading = node.cloneNode(true);
             heading.querySelectorAll('.mark_answer,.correctAnswerContent,.correct-answer,.rightAnswer,[data-role="correct-answer"],.correctAnswer,.correctAnswerBx,.myAnswerBx,.user-answer,.analysisDiv,.mark_answer_analysis,.analysis,.answer-analysis,.Zy_ulTop,.mark_letter,.choices,.options,.option-list,.optionList,.option-item,.answerBg,[data-cx-option],input,textarea,[contenteditable=true]').forEach((n) => n.remove());
           }
-          const options = [...node.querySelectorAll('.Zy_ulTop li,.mark_letter li,.choices li,.option,.subject_item,.answerBg,[data-cx-option],.nodeLab,.option-item,.option-result,.optionList > div,[class*="index-module__optionBody"]')].filter((n, i, a) => !a.some((other) => other !== n && other.contains(n))).map(readText);
+          const optionNodes = [...node.querySelectorAll('.Zy_ulTop li,.mark_letter li,.choices li,.option,.subject_item,.answerBg,[data-cx-option],.nodeLab,.option-item,.option-result,.optionList > div,[class*="index-module__optionBody"]')].filter((n, i, a) => !a.some((other) => other !== n && other.contains(n)));
+          const options = optionNodes.map((n, i) => {
+            const content = n.querySelector(":scope > .after");
+            if (content) return readText(content);
+            return readText(n).replace(new RegExp(`^${String.fromCharCode(65 + i)}[.\uFF0E\u3001:\uFF1A)\uFF09]\\s*`), "");
+          });
           const answerNode = node.querySelector('.correctAnswerContent,.correct-answer,.rightAnswer,[data-role="correct-answer"],.correctAnswerBx .answerCon,.mark_answer .colorGreen,.correctAnswer,[data-correct-answer]');
           const userNode = node.querySelector(".myAnswerBx .answerCon,.user-answer,.mark_answer .colorDeep");
-          const selected = [...node.querySelectorAll("input:checked")].map((n) => n.value);
+          const selected = optionNodes.flatMap((n, i) => {
+            const marked = (e) => e.matches('input:checked,[aria-checked="true"],[aria-selected="true"]') || [...e.classList].some((name) => name === "selected" || /^check_answer(?:_|$)/.test(name));
+            return marked(n) || [...n.querySelectorAll("input,[aria-checked],[aria-selected],[class]")].some(marked) ? [String.fromCharCode(65 + i)] : [];
+          });
+          if (!selected.length) selected.push(...[...node.querySelectorAll("input:checked")].map((n) => n.value));
+          const answerFields = [...node.querySelectorAll("input[type=hidden]")].filter((n) => /^answer\d+$/.test(n.name || n.id));
+          const hiddenAnswers = answerFields.map((n) => n.value).filter(Boolean);
           const inputs = [...node.querySelectorAll("textarea,input[type=text],input:not([type]),[contenteditable=true]")].map((n) => n.value ?? n.textContent).filter(Boolean);
           const imageNodes = [...node.querySelectorAll("img")].filter((n) => !n.matches("[aria-hidden=true],[role=presentation],.icon,.avatar,.loading"));
           const inAnswer = (n) => Boolean(n.closest('.mark_answer,.correctAnswerContent,.correct-answer,.rightAnswer,[data-role="correct-answer"],.correctAnswerBx,.myAnswerBx,.analysisDiv,.mark_answer_analysis,.analysis,.answer-analysis'));
           const imageRecord = (n) => ({ url: imageURL(n.currentSrc || n.getAttribute("src"), doc.baseURI), alt: n.alt || "\u9898\u56FE" });
+          const answerId = answerFields[0] && (answerFields[0].name || answerFields[0].id).slice("answer".length);
           return {
-            id: node.dataset.questionid || node.dataset.questionId || node.dataset.id || node.getAttribute("data") || node.id || "",
+            id: node.dataset.questionid || node.dataset.questionId || answerId || node.dataset.id || node.getAttribute("data") || node.id || "",
             title: readText(heading) || `\u9898\u76EE ${index + 1}`,
             options,
             answer: answerNode ? readText(answerNode) : "",
-            userAnswer: userNode ? readText(userNode) : [...selected, ...inputs].join("\n"),
+            userAnswer: userNode ? readText(userNode) : [...selected.length ? selected : hiddenAnswers, ...inputs].join("\n"),
             analysis: readText(node.querySelector(".analysisDiv,.mark_answer_analysis,.analysis,.answer-analysis")),
             images: imageNodes.filter((n) => !inAnswer(n)).map(imageRecord).filter((n) => n.url),
             answerImages: imageNodes.filter(inAnswer).map(imageRecord).filter((n) => n.url)
@@ -5989,6 +6021,14 @@ var CourseDashboard = (() => {
       function documentCount(doc) {
         const nodes = [...doc.querySelectorAll("#totalQuestionNum,#questionCount,input[name=totalQuestionNum],input[name=questionCount],[data-question-count],[data-total-question]")];
         const counts = nodes.map((node) => Number(node.value || node.getAttribute("data-question-count") || node.getAttribute("data-total-question"))).filter((count) => Number.isInteger(count) && count > 0 && count <= 1e4);
+        for (const node of doc.querySelectorAll("p")) {
+          if (node.closest(QUESTION_ROOTS)) continue;
+          const match = node.textContent.trim().match(/^题量\s*[:：]\s*(\d+)(?=\s|满分|$)/);
+          if (match) {
+            const count = Number(match[1]);
+            if (count > 0 && count <= 1e4) counts.push(count);
+          }
+        }
         const cards = [...doc.querySelectorAll(".answerCard [data-questionid],.answerCard [data-question-id],.answer-card [data-question-id],.topicNumber_list li[data]")];
         const ids = cards.map((node) => node.getAttribute("data-questionid") || node.getAttribute("data-question-id") || node.getAttribute("data")).filter(Boolean);
         if (!ids.length) {
@@ -6372,7 +6412,7 @@ ${q.analysis}
         const list = json?.data?.activeList || json?.activeList || (Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : null);
         if (!Array.isArray(list)) throw new Error("\u4EFB\u52A1\u5217\u8868\u683C\u5F0F\u4E0D\u652F\u6301");
         return list.map((item, i) => {
-          const type = { 2: "\u7B7E\u5230", 4: "\u62A2\u7B54", 5: "\u9009\u4EBA", 11: "\u6295\u7968", 14: "\u95EE\u5377", 17: "\u76F4\u64AD", 23: "\u968F\u5802\u7EC3\u4E60", 35: "\u5206\u7EC4\u4EFB\u52A1", 42: "\u968F\u5802\u7EC3\u4E60", 43: "\u8BC4\u5206", 47: "\u4F5C\u4E1A", 64: "\u7B14\u8BB0" }[item.activeType ?? item.type] || "\u8BFE\u7A0B\u6D3B\u52A8";
+          const type = { 2: "\u7B7E\u5230", 4: "\u62A2\u7B54", 5: "\u4E3B\u9898\u8BA8\u8BBA", 11: "\u9009\u4EBA", 14: "\u95EE\u5377", 17: "\u76F4\u64AD", 23: "\u968F\u5802\u7EC3\u4E60", 35: "\u5206\u7EC4\u4EFB\u52A1", 42: "\u968F\u5802\u7EC3\u4E60", 43: "\u6295\u7968", 47: "\u4F5C\u4E1A", 64: "\u7B14\u8BB0", 77: "AI\u5B9E\u8DF5" }[item.activeType ?? item.type] || "\u8BFE\u7A0B\u6D3B\u52A8";
           const url = new URL("https://mooc1.chaoxing.com/visit/stucoursemiddle");
           url.search = new URLSearchParams({ ismooc2: "1", courseid: course.id, clazzid: course.clazz, pageHeader: type === "\u4F5C\u4E1A" ? "8" : "0" }).toString();
           return {
@@ -6387,21 +6427,27 @@ ${q.analysis}
           };
         });
       }
-      function tasksFromDOM(doc) {
+      function tasksFromDOM(doc, readAt = Date.now()) {
         const selectors = 'a[href*="work"],a[href*="exam"],a[href*="active"]';
-        return [...doc.querySelectorAll(selectors + ",ul.nav > li[data],ul.ks_list > li[data],table.dataTable tr.dataTr")].flatMap((link, i) => {
+        return [...doc.querySelectorAll(selectors + ',ul.nav > li[data],ul.ks_list > li[data],li[data][onclick*="goTask"],table.dataTable tr.dataTr')].flatMap((link, i) => {
           const row = link.closest("li,tr,.work-item,.exam-item,.task-item") || link;
           const action = link.querySelector("a[onclick]"), literal = /\bgo\(['"]([^'"]+)['"]\)/.exec(action?.getAttribute("onclick") || "")?.[1];
           const url = safeURL(link.getAttribute("href") || link.getAttribute("data") || literal, doc.baseURI, hostAllowed);
-          if (!url || !textOf(link)) return [];
+          const title = link.getAttribute("title") || textOf(row.querySelector("[role=option] p,dt,td:nth-child(2)")) || textOf(link);
+          if (!url || !title) return [];
           const dates = row.textContent.match(/\d{4}[-/]\d{1,2}[-/]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?/g) || [];
+          let deadline = dateValue(row.dataset.deadline || row.querySelector("time")?.dateTime || dates.at(-1));
+          const remaining = row.textContent.match(/剩余\s*(?:(\d+)天)?\s*(?:(\d+)小时)?\s*(?:(\d+)分钟)?/);
+          const approximate = deadline === null && remaining && remaining.slice(1).some((value) => value !== void 0);
+          if (approximate) deadline = readAt + ((Number(remaining[1] || 0) * 24 + Number(remaining[2] || 0)) * 60 + Number(remaining[3] || 0)) * 6e4;
           return [{
             id: url,
             course: row.dataset.courseName || row.querySelector("[role=option] span:nth-of-type(2)")?.textContent || "\u5168\u90E8\u8BFE\u7A0B",
-            title: link.getAttribute("title") || textOf(row.querySelector("[role=option] p,dt,td:nth-child(2)")) || textOf(link),
+            title,
             type: /exam/.test(url) || row.matches("tr.dataTr") ? "\u8003\u8BD5" : /work/.test(url) ? "\u4F5C\u4E1A" : "\u8BFE\u7A0B\u6D3B\u52A8",
             state: /未提交|未完成|未批阅/.test(row.textContent) ? "\u5F85\u6838\u5BF9" : /已提交|已完成|已批阅|待批阅/.test(row.textContent) ? "\u5DF2\u5B8C\u6210" : /已结束|已截止/.test(row.textContent) ? "\u5DF2\u7ED3\u675F" : "\u5F85\u6838\u5BF9",
-            deadline: dateValue(row.dataset.deadline || row.querySelector("time")?.dateTime || dates.at(-1)),
+            deadline,
+            ...approximate ? { deadlineApproximate: true } : {},
             url
           }];
         });
@@ -7158,7 +7204,7 @@ var CXHomework = (() => {
       }
       var ACTION_FEEDBACK = {
         "\u6682\u5B58": "#saveSuccessContent, #dialogToast, .save-result, [data-save-state]",
-        "\u8FD0\u884C\u6D4B\u8BD5": ".run-result, .compile-result, .test-result, [data-run-state]",
+        "\u8FD0\u884C\u6D4B\u8BD5": ".run-result, .compile-result, .test-result, [data-run-state], .compilation_result .runResult[readonly]",
         "\u63D0\u4EA4": ".submit-result, [data-submit-state], [data-submit-result]",
         "\u7B7E\u5230": ".sign-success, #signSuccess, [data-sign-state]"
       };
@@ -7167,14 +7213,14 @@ var CXHomework = (() => {
         const scope = root.nodeType === 9 || specialRoots(doc).length === 1 ? doc : root;
         const selector = ACTION_FEEDBACK[action];
         if (!selector) return [];
-        return nodes(scope, selector).filter((node) => node.matches('[data-save-state="success"], [data-run-state="success"], [data-submit-state="success"], [data-sign-state="success"], .sign-success, #signSuccess') || (action === "\u6682\u5B58" ? /保存成功|暂存成功/ : action === "\u8FD0\u884C\u6D4B\u8BD5" ? /运行完成|编译成功|测试完成/ : action === "\u7B7E\u5230" ? /签到成功/ : /提交成功/).test(text(node)));
+        return nodes(scope, selector).filter((node) => node.matches('[data-save-state="success"], [data-run-state="success"], [data-submit-state="success"], [data-sign-state="success"], .sign-success, #signSuccess') || (action === "\u6682\u5B58" ? /保存成功|暂存成功/ : action === "\u8FD0\u884C\u6D4B\u8BD5" ? /运行完成|编译成功|测试完成|^Accepted(?:[（(]|$)|^运行通过$/i : action === "\u7B7E\u5230" ? /签到成功/ : /提交成功/).test(text(node)));
       }
       function taskTitle(root) {
         return text(root.querySelector("[data-question-title], .mark_name, .problem-title, .question-title, h1, h2, h3")) || "\u5F53\u524D\u4EFB\u52A1";
       }
       function statement(root, { bounded = true } = {}) {
         const clone = (root.nodeType === 9 ? root.querySelector("[data-discussion-topic], .topicDetail_main, .topic-content, .topicDetail, .topic_content") || root.body : root).cloneNode(true);
-        clone.querySelectorAll("script, style, button, input, textarea, iframe, [contenteditable], .CodeMirror, .cm-editor, .ace_editor, .monaco-editor, #cx-video-helper-host").forEach((node) => node.remove());
+        clone.querySelectorAll("script, style, button, input, textarea, iframe, [contenteditable], .CodeMirror, .cm-editor, .ace_editor, .monaco-editor, .compilation_result, .run-result, .compile-result, .test-result, [data-run-state], #cx-video-helper-host").forEach((node) => node.remove());
         clone.querySelectorAll("p, div, pre, li, tr, h1, h2, h3").forEach((node) => node.append("\n"));
         const value = String(clone.textContent || "").trim();
         if (bounded && value.length > 4e4) throw new Error("\u9898\u76EE\u8D85\u8FC7\u5904\u7406\u8303\u56F4\uFF0C\u8BF7\u9009\u4E2D\u5BF9\u5E94\u9898\u76EE\u5355\u72EC\u5904\u7406");
@@ -7733,7 +7779,7 @@ var CXTasks = (() => {
       }
       var ACTION_FEEDBACK = {
         "\u6682\u5B58": "#saveSuccessContent, #dialogToast, .save-result, [data-save-state]",
-        "\u8FD0\u884C\u6D4B\u8BD5": ".run-result, .compile-result, .test-result, [data-run-state]",
+        "\u8FD0\u884C\u6D4B\u8BD5": ".run-result, .compile-result, .test-result, [data-run-state], .compilation_result .runResult[readonly]",
         "\u63D0\u4EA4": ".submit-result, [data-submit-state], [data-submit-result]",
         "\u7B7E\u5230": ".sign-success, #signSuccess, [data-sign-state]"
       };
@@ -7742,14 +7788,14 @@ var CXTasks = (() => {
         const scope = root.nodeType === 9 || specialRoots(doc).length === 1 ? doc : root;
         const selector = ACTION_FEEDBACK[action];
         if (!selector) return [];
-        return nodes(scope, selector).filter((node) => node.matches('[data-save-state="success"], [data-run-state="success"], [data-submit-state="success"], [data-sign-state="success"], .sign-success, #signSuccess') || (action === "\u6682\u5B58" ? /保存成功|暂存成功/ : action === "\u8FD0\u884C\u6D4B\u8BD5" ? /运行完成|编译成功|测试完成/ : action === "\u7B7E\u5230" ? /签到成功/ : /提交成功/).test(text(node)));
+        return nodes(scope, selector).filter((node) => node.matches('[data-save-state="success"], [data-run-state="success"], [data-submit-state="success"], [data-sign-state="success"], .sign-success, #signSuccess') || (action === "\u6682\u5B58" ? /保存成功|暂存成功/ : action === "\u8FD0\u884C\u6D4B\u8BD5" ? /运行完成|编译成功|测试完成|^Accepted(?:[（(]|$)|^运行通过$/i : action === "\u7B7E\u5230" ? /签到成功/ : /提交成功/).test(text(node)));
       }
       function taskTitle(root) {
         return text(root.querySelector("[data-question-title], .mark_name, .problem-title, .question-title, h1, h2, h3")) || "\u5F53\u524D\u4EFB\u52A1";
       }
       function statement(root, { bounded = true } = {}) {
         const clone = (root.nodeType === 9 ? root.querySelector("[data-discussion-topic], .topicDetail_main, .topic-content, .topicDetail, .topic_content") || root.body : root).cloneNode(true);
-        clone.querySelectorAll("script, style, button, input, textarea, iframe, [contenteditable], .CodeMirror, .cm-editor, .ace_editor, .monaco-editor, #cx-video-helper-host").forEach((node) => node.remove());
+        clone.querySelectorAll("script, style, button, input, textarea, iframe, [contenteditable], .CodeMirror, .cm-editor, .ace_editor, .monaco-editor, .compilation_result, .run-result, .compile-result, .test-result, [data-run-state], #cx-video-helper-host").forEach((node) => node.remove());
         clone.querySelectorAll("p, div, pre, li, tr, h1, h2, h3").forEach((node) => node.append("\n"));
         const value = String(clone.textContent || "").trim();
         if (bounded && value.length > 4e4) throw new Error("\u9898\u76EE\u8D85\u8FC7\u5904\u7406\u8303\u56F4\uFF0C\u8BF7\u9009\u4E2D\u5BF9\u5E94\u9898\u76EE\u5355\u72EC\u5904\u7406");
@@ -8717,7 +8763,7 @@ var CXOCSRuntime = (() => {
   function editorsOf(root) {
     const readGroup = (group) => {
       const direct = [...group.querySelectorAll('textarea, input[type="text"], input:not([type]), [contenteditable="true"]')]
-        .filter((element) => !element.closest('[data-cx-ignore]'));
+        .filter((element) => !element.closest('[data-cx-ignore], .compilation_result, .run-result, .compile-result, .test-result, [data-run-state]'));
       const frameBodies = [];
       for (const frame of group.querySelectorAll('iframe')) {
         try {
@@ -10314,7 +10360,7 @@ var CXOCSRuntime = (() => {
     const renderUsage=()=>{const rows=StudyTools.usageRows(readStore('learnova.usage.v1',[])),sum=rows.reduce((a,r)=>({requests:a.requests+r.requests,failed:a.failed+r.failed,known:a.known+r.known,input:a.input+r.input,output:a.output+r.output}),{requests:0,failed:0,known:0,input:0,output:0});get('toolsUsage').textContent=`请求 ${sum.requests} · 失败 ${sum.failed} · 输入 ${sum.input} / 输出 ${sum.output} tokens · ${sum.requests-sum.known} 次用量未知`;};
     const renderTodos=()=>{const list=get('toolsTodo');list.replaceChildren();const query=get('toolsTodoSearch').value.trim().toLowerCase(),filter=get('toolsTodoFilter').value;
       const visible=todos.filter(t=>(t.course+' '+t.title).toLowerCase().includes(query)&&(filter!=='pending'||t.state!=='已完成')&&(filter!=='soon'||t.deadline&&t.deadline>=Date.now()&&t.deadline<Date.now()+7*86400000)).sort((a,b)=>(a.deadline||Infinity)-(b.deadline||Infinity));
-      for(const task of visible){const row=document.createElement('p'),a=document.createElement('a');a.href=task.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=`${task.course} · ${task.title}`;row.append(a,document.createTextNode(` · ${task.type} · ${task.state} · ${task.deadline?new Date(task.deadline).toLocaleString():'截止时间未知'}`));list.append(row);}
+      for(const task of visible){const row=document.createElement('p'),a=document.createElement('a');a.href=task.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=`${task.course} · ${task.title}`;row.append(a,document.createTextNode(` · ${task.type} · ${task.state} · ${task.deadline?(task.deadlineApproximate?'约 ':'')+new Date(task.deadline).toLocaleString():'截止时间未知'}`));list.append(row);}
       if(!visible.length)list.textContent='没有匹配的任务';};
     get('toolsRefresh').onclick=refresh;get('toolsTodoSearch').oninput=renderTodos;get('toolsTodoFilter').onchange=renderTodos;
     const exportDocument=async word=>{
@@ -10830,7 +10876,7 @@ var CXOCSRuntime = (() => {
           }
           if (record.status !== 'new') continue;
           if (hasInput(q) && !settings.overwriteAnswers) { record.status = 'manual'; log('检测到已填写的题目，保留现有答案'); continue; }
-          if (hasInput(q)) log('检测到已有答案，重新查题并按查询结果替换');
+          if (hasInput(q) && !record.recheckNotified) { record.recheckNotified = true; log('检测到已有答案，重新查题并按查询结果替换'); }
           // 视频弹题优先于章节题目。
           if (q.popup) nextQuestions.unshift({ q, record }); else nextQuestions.push({ q, record });
         }
@@ -11059,7 +11105,7 @@ var CXOCSRuntime = (() => {
             <div class="row"><label for="requireWebSearch">每题先让 AI 联网核查</label><input type="checkbox" id="requireWebSearch"></div>
             <p class="hint">默认关闭，可按需开启。开启后每题必须由程序取得真实搜索证据。内置模式核验 Responses 搜索工具和来源；独立模式先请求 Tavily 再交给当前模型。搜索失败或无结果时停止，不随机兜底。</p>
             <div class="row"><label for="overwriteAnswers">已填写题目也重新查题并替换</label><input type="checkbox" id="overwriteAnswers"></div>
-            <p class="hint">默认开启。已有答案也会重新查询；查询失败时保留原答案，开启随机兜底时可随机替换单选/多选/判断。查询期间手动修改的内容仍保留。</p>
+            <p class="hint">默认关闭。开启后已有答案也会重新查询；查询失败时保留原答案，开启随机兜底时可随机替换单选/多选/判断。查询期间手动修改的内容仍保留。</p>
             <div class="row"><label for="randomFallback">无可用答案时随机单选 / 多选 / 判断</label><input type="checkbox" id="randomFallback"></div>
             <div class="row"><label for="compareRandomConfidence">低信心 AI 高于随机基准时仍采用</label><input type="checkbox" id="compareRandomConfidence"></div>
             <div class="row"><label for="fuzzyMatching">唯一高分相似选项匹配</label><input type="checkbox" id="fuzzyMatching"></div>
