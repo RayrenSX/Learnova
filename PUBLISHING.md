@@ -4,7 +4,11 @@ All editions currently use **0.1.11**. The root `package.json` is the build vers
 
 ## 0.1.11 release (2026-10-29)
 
-Adds the default-on empty-card navigation setting and Home shortcut. Empty cards advance through the remaining current-chapter cards before using the native next-section button. The final implementation passed 9 empty-content and 4 interface regression scenarios; a live signed-in course confirmed an empty card advanced to a document card. Release and platform synchronization verification will be recorded after publication.
+Adds the default-on empty-card navigation setting and Home shortcut. Empty cards advance through the remaining current-chapter cards before using the native next-section button. The final implementation passed 9 empty-content and 4 interface regression scenarios; a live signed-in course confirmed an empty card advanced to a document card.
+
+- [GitHub release v0.1.11](https://github.com/RayrenSX/Learnova/releases/tag/v0.1.11) was published from `c823508`. The [tagged workflow](https://github.com/RayrenSX/Learnova/actions/runs/40821730328) and [main workflow](https://github.com/RayrenSX/Learnova/actions/runs/40821725976) passed; the tagged browser regression checks passed 41/41. All eight downloaded assets match GitHub's digests, byte counts, version and local builds after LF normalization; syntax checks passed.
+- ScriptCat 8739 was synchronized through its existing form. Its public description and installation link show 0.1.11. The complete anonymous installation download passes syntax checks, includes the empty-card setting, and matches the combined release code body after excluding platform metadata and normalizing line endings.
+- Greasy Fork Chaoxing 602230 and Pintia 602231 remain pending manual synchronization and public version verification. Connections to greasyfork.org timed out. Their existing automatic code and description sources were preserved; the latest GitHub source assets are ready. No Greasy Fork success is claimed for this release.
 
 ## 0.1.10 verification (2026-10-29)
 
