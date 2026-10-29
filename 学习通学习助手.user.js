@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova
 // @namespace    local.xuexitong.helper
-// @version      0.1.12
+// @version      0.1.13
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @updateURL    https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.meta.js
@@ -47,7 +47,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.12",
+        version: "0.1.13",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -850,23 +850,45 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
     const pages = [...root.querySelectorAll('li[id^="anchor"]')];
     const images = pages.flatMap(page => [...page.querySelectorAll('img')]);
     const scroller = doc.scrollingElement;
-    // 图片尚未加载时高度不可靠；不能把临时短页面当成末页。
-    if (!pages.length || !images.length || images.some(img => !img.complete || !img.naturalHeight)
-      || !visible(root) || !scroller?.clientHeight) {
+    if (!pages.length || !images.length || !visible(root) || !scroller?.clientHeight) {
       record.nextAt = Date.now() + delay;
       return;
     }
-    const remaining = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop;
+    // A failed later thumbnail must not prevent reading the pages already
+    // rendered. Stop at its boundary, though: an unloaded short placeholder
+    // cannot count as a page read or as the end of the document.
+    const pendingPage = pages.find(page => {
+      const items = [...page.querySelectorAll('img')];
+      return !items.length || items.some(img => !img.complete || !img.naturalHeight);
+    });
+    const limit = pendingPage
+      ? Math.max(0, pendingPage.getBoundingClientRect().top + scroller.scrollTop - scroller.clientHeight)
+      : scroller.scrollHeight - scroller.clientHeight;
+    const remaining = limit - scroller.scrollTop;
     if (remaining > 1) {
       // 只滚动阅读 iframe 本身，保留重叠区域，也覆盖比视口高的单张幻灯片。
       // scrollIntoView 会连带滚动外层课程页；这里由真实 scroll 事件触发平台处理。
       scroller.scrollTop += Math.min(remaining, Math.max(1, Math.floor(scroller.clientHeight * 0.85)));
       record.seen = true;
+    } else if (pendingPage) {
+      record.imageRetries ||= new WeakMap();
+      for (const img of pendingPage.querySelectorAll('img')) {
+        if (!img.complete || img.naturalHeight || !img.getAttribute('src')) continue;
+        const attempts = record.imageRetries.get(img) || 0;
+        if (attempts < 2) {
+          record.imageRetries.set(img, attempts + 1);
+          img.src = img.getAttribute('src');
+        } else once(`reader-image-failed:${doc.URL}:${pendingPage.id}`, `文档第 ${pages.indexOf(pendingPage) + 1} 页重载后仍失败，等待图片恢复；可刷新文档后重试`, 'warn');
+      }
+      once(`reader-image:${doc.URL}:${pendingPage.id}`, `文档第 ${pages.indexOf(pendingPage) + 1} 页图片尚未加载，正在重试；已加载页面可继续阅读`, 'warn');
     } else {
       once(`reader-bottom:${doc.URL}`, '课件已滚动到末页，等待平台任务完成标记');
     }
     // 不自行写入完成标记或调用上报；内容高度变化时下一轮仍能继续。
     record.nextAt = Date.now() + delay;
+  }
+  function readingScanInterval() {
+    return settings.autoRead && !settings.answerOnly ? Math.min(800, Math.max(100, Number(settings.readDelay) || 5000)) : 800;
   }
   function scanReading(docs) {
     if (settings.answerOnly || !settings.autoRead || !state.running || state.verification || (!settings.backgroundPlay && document.hidden)) return;
@@ -882,7 +904,7 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
       if (!record || record.identity !== identity) { record = { identity, nextAt: 0, last: '', done: false, seen: false }; readingRecords.set(root, record); }
       if (record.done) continue;
       const timing = Number(new URL(doc.URL).searchParams.get('timing')) || Number(root.dataset.readSeconds) || 0;
-      const delay = Math.max(1000, Number(settings.readDelay) || 5000, timing * 1000);
+      const delay = Math.max(100, Number(settings.readDelay) || 5000, timing * 1000);
       if (record.lastScan && Date.now() - record.lastScan > 4000) record.nextAt = Date.now() + delay;
       record.lastScan = Date.now();
       if (!record.nextAt) { record.nextAt = Date.now() + delay; log('开始阅读文档/书籍，按页面要求等待后翻页'); }
@@ -3430,7 +3452,7 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
       renderStatus();
     } catch (error) { once(`scan:${error.message}`, `扫描失败：${error.message}`, 'error'); }
     clearTimeout(state.timer);
-    if (state.running) state.timer = setTimeout(scan, 800);
+    if (state.running) state.timer = setTimeout(scan, readingScanInterval());
   }
   function start() {
     if (state.disposed) return;
@@ -3591,7 +3613,7 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
             <p class="hint">默认开启。空卡片稳定显示后自动前进；本节还有卡片时先切换卡片。暂停或只答题时不跳转。</p>
             <div class="row"><label for="skipFinished">跳过已完成任务点</label><input type="checkbox" id="skipFinished"></div>
             <div class="row"><label for="autoRead">文档 / PPT / 书籍 / 链接阅读</label><input type="checkbox" id="autoRead"></div>
-            <label class="field"><span>每页最少阅读秒数</span><input id="readDelay" type="number" min="1" max="3600"></label>
+            <label class="field"><span>每页最少阅读秒数</span><input id="readDelay" type="number" min="0.1" step="0.1" max="3600"></label>
             <p class="hint" data-setting-group="reading">按页面计时要求和此间隔逐页阅读，等待平台完成标记。关闭后停止后续翻页。链接可能打开新标签。</p>
             <div class="row"><label for="autoAnswer">自动答题（章节测验 / 视频弹题）</label><input type="checkbox" id="autoAnswer"></div>
             <div class="row"><label for="requireWebSearch">每题先让 AI 联网核查</label><input type="checkbox" id="requireWebSearch"></div>
@@ -3713,7 +3735,7 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
       const input = refs[id];
       if (input.type === 'checkbox') input.checked = Boolean(settings[id]); else input.value = String(id === 'readDelay' ? settings[id] / 1000 : settings[id]);
       input.addEventListener('change', () => {
-        settings[id] = input.type === 'checkbox' ? input.checked : id === 'speed' ? input.value : id === 'readDelay' ? Math.min(3600, Math.max(1, Number(input.value) || 5)) * 1000 : Number(input.value);
+        settings[id] = input.type === 'checkbox' ? input.checked : id === 'speed' ? input.value : id === 'readDelay' ? Math.min(3600, Math.max(0.1, Number(input.value) || 5)) * 1000 : Number(input.value);
         if (id === 'autoAnswer' || id === 'overwriteAnswers' || id === 'requireWebSearch') { invalidateAnswers(); resetContext(true); }
         if (id === 'homeworkEnabled') invalidateAnswers();
         if (['specialEnabled','specialCodeAI','discussionEnabled'].includes(id)) invalidateAnswers();
@@ -4538,13 +4560,15 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
     try{embeddedPlatformFrame=/(^|\.)chaoxing\.com$/.test(new URL(document.referrer).hostname);}catch{}
     if (/\/readsvr\/book\/mooc/.test(location.pathname) || cloudReaderDocument(document) || CXTasks.pdfResource(document)) {
       state.running = Boolean(settings.enabled);
+    let timer;
     const tick = () => {
       Object.assign(settings, DEFAULTS, readStore(KEY, {})); state.running = Boolean(settings.enabled);
       scanReading([document]);
+      timer = setTimeout(tick, readingScanInterval());
     };
-    tick(); const timer = setInterval(tick, 1000);
-    window.addEventListener('pagehide', event => { if (!event.persisted) clearInterval(timer); });
-    window.addEventListener('pageshow', event => { if (event.persisted) tick(); });
+    tick();
+    window.addEventListener('pagehide', event => { if (!event.persisted) clearTimeout(timer); });
+    window.addEventListener('pageshow', event => { if (event.persisted) { clearTimeout(timer); tick(); } });
       return;
     }
     if (CXTasks.pageKind(document) === 'none' && CXHomework.kind(document) === 'none') return;
@@ -35452,7 +35476,7 @@ ${example.output}`);
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.12",
+        version: "0.1.13",
         private: true,
         description: "学习通播放、阅读与答题和 Pintia 代码工作台合并用户脚本，按网站自动加载",
         main: "学习助手完整版.user.js",

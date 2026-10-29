@@ -29,7 +29,7 @@ jobs:
       - name: Verify userscript audit and page layout regressions
         run: node tests/run.cjs
         env:
-          CX_TEST_FILTER: 暂无内容|ScriptCat|页面分区|队列审查|课程队列|队列读取|课后作业：列表|题库管理|章节测验：doHomeWorkNew|HTML书籍|阅读回执
+          CX_TEST_FILTER: 暂无内容|ScriptCat|页面分区|队列审查|课程队列|队列读取|课后作业：列表|题库管理|章节测验：doHomeWorkNew|HTML书籍|阅读回执|云盘课件|自动阅读支持
       - uses: actions/upload-artifact@v4
         with:
           name: Learnova

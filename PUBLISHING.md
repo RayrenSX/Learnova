@@ -1,6 +1,10 @@
 # Publishing Learnova
 
-All editions currently use **0.1.12**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+All editions currently use **0.1.13**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+
+## 0.1.13 fix (2026-10-29)
+
+The live course's first document image loaded but pages 2 and 3 failed. Previously that blocked all scrolling. The reader now scrolls the loaded portion, stops at the unavailable page, retries twice and resumes after recovery. Installed-script testing observed scroll 0 → 927 and a page-2 wait message. Public publication is pending.
 
 ## 0.1.12 fix (2026-10-29)
 

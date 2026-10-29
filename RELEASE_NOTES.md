@@ -1,3 +1,11 @@
+Learnova 0.1.13
+
+- Allow reading intervals down to 0.1 seconds, with subsecond scan scheduling while preserving longer platform timing requirements.
+- Allow cloud-document reading to scroll already rendered pages when a later page image fails to load. Stop at the first unavailable page instead of treating its placeholder as read.
+- Retry failed images at most twice per page element, show a wait/error message, and resume when the image becomes available. Preserve pause, reading settings and native completion requirements.
+- Tested in the installed userscript: the supplied course document moved from scroll offset 0 to 927 while page 2 remained unavailable; no completion was fabricated. Added a regression for failure, retry limits and continuation after recovery.
+- Rebuild all editions at the same version; Pintia has no functional change.
+
 Learnova 0.1.12
 
 - Fix empty-card navigation in userscript manager sandboxes where the virtual window differs from the DOM window. Traverse iframe owner elements instead of comparing window identities.

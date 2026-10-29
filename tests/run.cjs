@@ -988,6 +988,22 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
     const request = await page.evaluate(() => window.aiRequests[0]);
     assert.equal(JSON.parse(request.payload.messages[1].content).groups.length, 2);
   });
+  await test('自动阅读支持保存 0.1 秒并按亚秒间隔翻页', async () => {
+    const { page } = await setup('<div data-cx-reader data-page="1"><button data-action="next-page" onclick="(window.pageTimes ||= []).push(performance.now());this.parentElement.dataset.page++">下一页</button></div>',
+      { autoRead: true, autoAnswer: false, autoNext: false }, [], {}, {}, { noStart: true });
+    const input = page.locator('#cx-video-helper-host #readDelay');
+    await input.evaluate(node => { node.value = '0.1'; node.dispatchEvent(new Event('change', { bubbles: true })); });
+    assert.equal(await input.getAttribute('min'), '0.1');
+    assert.equal(await input.evaluate(node => node.checkValidity()), true);
+    assert.equal(await page.evaluate(key => GM_getValue(key).readDelay, STORE), 100);
+    await page.locator('#cx-video-helper-host #toggle').click();
+    await page.waitForFunction(() => window.pageTimes?.length >= 3);
+    const times = await page.evaluate(() => window.pageTimes.slice(0, 3));
+    for (let i = 1; i < times.length; i++) {
+      assert.ok(times[i] - times[i - 1] >= 95, '每页至少等待 0.1 秒（允许时钟精度误差）');
+      assert.ok(times[i] - times[i - 1] < 750, '翻页不再受原来的 800/1000 毫秒间隔限制');
+    }
+  });
   await test('阅读任务按计时翻页，完成前不切章，关闭阅读不翻页', async () => {
     const body = `<div class="ans-job" id="job"><div data-cx-reader data-page="1" data-read-seconds="1"><span class="page-number">1</span><button data-action="next-page" onclick="const r=this.parentElement;r.dataset.page=Number(r.dataset.page)+1;r.querySelector('.page-number').textContent=r.dataset.page;if(r.dataset.page==='3'){this.disabled=true;r.querySelector('[data-action=finish-reading]').hidden=false}">下一页</button><button hidden data-action="finish-reading" onclick="document.querySelector('#job').classList.add('ans-job-finished')">结束阅读</button></div></div>`;
     const { page } = await setup(body, { readDelay: 1000, autoRead: true, nextDelay: 1000 });
@@ -1061,6 +1077,22 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>学�
       });
     await page.waitForTimeout(2200);
     for (const reader of page.frames().slice(1)) assert.equal(await reader.evaluate(() => scrollY), 0);
+  });
+  await test('云盘课件：后页图片失败不阻塞已加载页面，失败页恢复后继续到底', async () => {
+    const html = cloudReaderFixture().replace('height:440px','height:1100px').replace('height:420px','height:1080px')
+      .replace('<li id="anchor2"><img src="/test-image.png">','<li id="anchor2"><img onerror="window.failedLoads=(window.failedLoads||0)+1" src="/broken-page.png">');
+    const {page} = await setup('<div class="ans-job"><iframe style="height:600px" src="/screen/v2/file_broken"></iframe></div>',
+      {autoRead:true,readDelay:1000,autoNext:false},[],{}, {'/screen/v2/file_broken':html});
+    const reader = page.frames().find(f=>f.url().includes('file_broken'));
+    await reader.waitForFunction(()=>scrollY>0,undefined,{timeout:6000});
+    await logContains(page,'文档第 2 页图片尚未加载');
+    assert.equal(await reader.evaluate(()=>scrollY<=document.querySelector('#anchor2').offsetTop-innerHeight+1),true);
+    await page.waitForTimeout(4000);
+    assert.ok(await reader.evaluate(()=>window.failedLoads<=3));
+    assert.equal(await reader.evaluate(()=>Boolean(window.reachedBottom)),false);
+    await reader.evaluate(()=>document.querySelector('#anchor2 img').src='/test-image.png');
+    await reader.waitForFunction(()=>window.reachedBottom,undefined,{timeout:15000});
+    assert.equal(await page.evaluate(()=>window.nextClicks),0);
   });
   await test('独立作业页面正常填写，考试默认停止、开启后逐题切换一次', async () => {
     const work = await setup(choice(1, '独立作业', ['甲', '乙']), aiSettings, [], {}, {}, { path: '/mooc2/work/dowork' });

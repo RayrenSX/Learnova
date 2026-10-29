@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova for Pintia
 // @namespace    local.pintia.code-helper
-// @version      0.1.12
+// @version      0.1.13
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @updateURL    https://github.com/RayrenSX/Learnova/releases/latest/download/pintia-helper.meta.js
