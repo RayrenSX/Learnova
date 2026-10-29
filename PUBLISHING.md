@@ -4,7 +4,11 @@ All editions currently use **0.1.13**. The root `package.json` is the build vers
 
 ## 0.1.13 fix (2026-10-29)
 
-The live course's first document image loaded but pages 2 and 3 failed. Previously that blocked all scrolling. The reader now scrolls the loaded portion, stops at the unavailable page, retries twice and resumes after recovery. Installed-script testing observed scroll 0 → 927 and a page-2 wait message. Public publication is pending.
+The live course's first document image loaded but pages 2 and 3 failed. Previously that blocked all scrolling. The reader now scrolls the loaded portion, stops at the unavailable page, retries twice and resumes after recovery. Installed-script testing observed scroll 0 → 927 and a page-2 wait message. Reading intervals now support 0.1 seconds while respecting longer platform timing requirements.
+
+- [GitHub release v0.1.13](https://github.com/RayrenSX/Learnova/releases/tag/v0.1.13) was published from `15bf508`. The [tagged workflow](https://github.com/RayrenSX/Learnova/actions/runs/40860561486) and [main workflow](https://github.com/RayrenSX/Learnova/actions/runs/40860557048) passed, including 48/48 browser regression scenarios. Local focused reading/empty-card checks passed 28/28 and study tools 16/16. All eight release downloads match GitHub's SHA-256 digests, byte counts and local builds after line-ending normalization; versions and syntax passed.
+- ScriptCat 8739 and Greasy Fork Chaoxing 602230 / Pintia 602231 were synchronized through their existing source-sync forms. Both Greasy Fork forms returned "Script successfully synced." All three public pages and descriptions show 0.1.13. Anonymous installation downloads pass syntax checks and match their corresponding release code bodies after excluding platform metadata and normalizing line endings. The Pintia installation URL initially returned cached 0.1.10; a cache-bypassed HTTP 200 download confirmed 0.1.13 and matching code.
+- Existing automatic synchronization and stable code/description URLs were preserved. Local account captures and unrelated research files remain outside the release commit.
 
 ## 0.1.12 fix (2026-10-29)
 
