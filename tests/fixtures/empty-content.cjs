@@ -3,6 +3,10 @@ module.exports = async ({test, setup, assert}) => {
   const empty = '<div class="ans-cc" id="pageDiv"><div class="nullpage"><dl><dt><img src="/nullImg.png"></dt><dd>暂无内容</dd></dl></div></div>';
   const frame = `<iframe src="${path}"></iframe>`;
   const options = {autoAnswer:false, autoRead:false, autoNext:false, nextDelay:1000};
+  await test('暂无内容：脚本管理器虚拟window与DOM窗口不同仍可前进', async () => {
+    const {page} = await setup(frame, options, [], {}, {[path]:empty}, {sandboxWindow:true});
+    await page.waitForFunction(() => window.nextClicks === 1, undefined, {timeout:7000});
+  });
   await test('暂无内容：默认开关独立于自动切章，调用下一节且只调用一次', async () => {
     const {page} = await setup(frame, options, [], {}, {[path]:empty});
     assert.equal(await page.locator('#cx-video-helper-host #autoSkipEmpty').isChecked(), true);

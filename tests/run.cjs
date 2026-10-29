@@ -169,7 +169,18 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>å­¦ä¹
     for (const frame of page.frames()) {
       await frame.evaluate(() => document.querySelectorAll('video,audio').forEach(window.mockMedia));
     }
-    await page.addScriptTag({ content: script });
+    if (mediaOptions.sandboxWindow) await page.evaluate(source => {
+      // Userscript managers may expose a virtual window while DOM defaultView
+      // still refers to the underlying window. Preserve that identity split.
+      let sandbox;
+      sandbox = new Proxy(window, { get(target, key) {
+        if (['window', 'self', 'top'].includes(key)) return sandbox;
+        const value = Reflect.get(target, key, target);
+        return typeof value === 'function' && !/^[A-Z]/.test(String(key)) ? value.bind(target) : value;
+      } });
+      new Function('window', source)(sandbox);
+    }, script);
+    else await page.addScriptTag({ content: script });
     if (!mediaOptions.noStart) await page.locator(`#cx-video-helper-host #${mediaOptions.startButton || 'toggle'}`).click();
     return { page, context, errors };
   }

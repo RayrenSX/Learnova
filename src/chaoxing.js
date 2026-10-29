@@ -1796,8 +1796,10 @@
     return scanResult.docs.find(doc => {
       const reject = () => { emptyCardReadiness.delete(doc); return false; };
       if (!/\/knowledge\/cards$/.test(new URL(doc.URL).pathname) || doc.readyState !== 'complete') return reject();
-      for (let win = doc.defaultView; win && win !== window; win = win.parent) {
-        if (!win.frameElement || !visible(win.frameElement)) return reject();
+      // Userscript sandboxes can virtualize window identity. Walk actual DOM
+      // frame owners so reaching the top document is not mistaken for a hidden frame.
+      for (let frame = doc.defaultView?.frameElement; frame; frame = frame.ownerDocument.defaultView?.frameElement) {
+        if (!visible(frame)) return reject();
       }
       const root = doc.querySelector('.ans-cc');
       const marker = root?.querySelector('.nullpage');

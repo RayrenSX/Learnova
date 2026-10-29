@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova for Chaoxing
 // @namespace    local.xuexitong.helper
-// @version      0.1.11
+// @version      0.1.12
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @description  学习通课程目录、视频音频播放、阅读、题库与可配置 AI 辅助。
@@ -41,7 +41,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.11",
+        version: "0.1.12",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -10619,8 +10619,10 @@ var CXOCSRuntime = (() => {
     return scanResult.docs.find(doc => {
       const reject = () => { emptyCardReadiness.delete(doc); return false; };
       if (!/\/knowledge\/cards$/.test(new URL(doc.URL).pathname) || doc.readyState !== 'complete') return reject();
-      for (let win = doc.defaultView; win && win !== window; win = win.parent) {
-        if (!win.frameElement || !visible(win.frameElement)) return reject();
+      // Userscript sandboxes can virtualize window identity. Walk actual DOM
+      // frame owners so reaching the top document is not mistaken for a hidden frame.
+      for (let frame = doc.defaultView?.frameElement; frame; frame = frame.ownerDocument.defaultView?.frameElement) {
+        if (!visible(frame)) return reject();
       }
       const root = doc.querySelector('.ans-cc');
       const marker = root?.querySelector('.nullpage');

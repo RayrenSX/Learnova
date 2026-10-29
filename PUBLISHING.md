@@ -1,6 +1,12 @@
 # Publishing Learnova
 
-All editions currently use **0.1.11**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+All editions currently use **0.1.12**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+
+## 0.1.12 fix (2026-10-29)
+
+The v0.1.11 empty-card check compared the DOM window with the userscript sandbox window. In the actual installed Tampermonkey environment this misidentified a visible card as hidden. The fix walks iframe owner elements instead. A virtual-window regression reproduces the old failure and passes with the fix; all 10 empty-content scenarios and the Home interface regression passed. Syntax, update and distribution checks passed.
+
+The fixed v0.1.12 was saved through the actual Tampermonkey editor and tested after reloading the signed-in course. Both the original chapter (1260609409) and chapter 1260611175 advanced from an empty first card to their PDF card, with the helper's navigation log and real active-card change observed. Tests ended paused and temporary settings were restored. GitHub/platform publication verification will be recorded after release.
 
 ## 0.1.11 release (2026-10-29)
 

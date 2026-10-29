@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova for Pintia
 // @namespace    local.pintia.code-helper
-// @version      0.1.11
+// @version      0.1.12
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @description  根据题目诊断现有代码，解释错因并生成修正代码；独立填写适配，不提交答案。

@@ -1,3 +1,9 @@
+Learnova 0.1.12
+
+- Fix empty-card navigation in userscript manager sandboxes where the virtual window differs from the DOM window. Traverse iframe owner elements instead of comparing window identities.
+- Add a regression that reproduces the v0.1.11 failure using a virtual window, while retaining hidden-frame and content-loading guards.
+- Rebuild all editions at version 0.1.12. Pintia receives the unified release version without functional changes.
+
 Learnova 0.1.11
 
 - Add a separate, enabled-by-default toggle for advancing when a course card explicitly displays “暂无内容”. Keep the Home shortcut and playback setting synchronized and saved immediately.
