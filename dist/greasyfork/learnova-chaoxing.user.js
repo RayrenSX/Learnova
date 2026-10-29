@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova for Chaoxing
 // @namespace    local.xuexitong.helper
-// @version      0.1.10
+// @version      0.1.11
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @description  学习通课程目录、视频音频播放、阅读、题库与可配置 AI 辅助。
@@ -41,7 +41,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.10",
+        version: "0.1.11",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -8052,7 +8052,7 @@ var CXOCSRuntime = (() => {
 // OCS_RUNTIME_END
   const BANK_KEY = 'cxHelper.bank.v2';
   const DEFAULTS = {
-    enabled: true, speed: 'auto', muted: true, autoNext: true, skipFinished: true,
+    enabled: true, speed: 'auto', muted: true, autoNext: true, autoSkipEmpty: true, skipFinished: true,
     requireWebSearch: false,
     searchMode: 'responses', searchUrl: 'https://api.tavily.com/search', searchKey: '', searchKeyOrigin: '',
     autoResume: true, backgroundPlay: true, blockPause: true, randomFallback: false,
@@ -10613,6 +10613,34 @@ var CXOCSRuntime = (() => {
     return chapter ? { element: chapter, description: `进入未完成章节：${chapter.title || chapter.textContent.trim()}` } : null;
   }
   const textCardReadiness = new WeakMap();
+  const emptyCardReadiness = new WeakMap();
+  function emptyCardDocument(scanResult) {
+    if (!/\/(?:mooc2?-ans\/)?mycourse\/studentstudy\/?$/.test(location.pathname)) return null;
+    return scanResult.docs.find(doc => {
+      const reject = () => { emptyCardReadiness.delete(doc); return false; };
+      if (!/\/knowledge\/cards$/.test(new URL(doc.URL).pathname) || doc.readyState !== 'complete') return reject();
+      for (let win = doc.defaultView; win && win !== window; win = win.parent) {
+        if (!win.frameElement || !visible(win.frameElement)) return reject();
+      }
+      const root = doc.querySelector('.ans-cc');
+      const marker = root?.querySelector('.nullpage');
+      if (!marker || !visible(marker) || marker.textContent.replace(/\s/g, '') !== '暂无内容') return reject();
+      const rest = root.cloneNode(true);
+      rest.querySelectorAll('.nullpage, script, style').forEach(node => node.remove());
+      if (rest.textContent.trim() || rest.querySelector('iframe,video,audio,img,object,embed,canvas,svg,input,textarea,button,a,[contenteditable],.ans-job,.ans-attach-ct')) return reject();
+      return true;
+    }) || null;
+  }
+  function emptyCardReady(scanResult) {
+    const doc = emptyCardDocument(scanResult);
+    if (!doc || !settings.autoSkipEmpty) return false;
+    const signature = state.navigationKey + ':' + doc.querySelector('.ans-cc').innerHTML;
+    const prior = emptyCardReadiness.get(doc);
+    if (prior?.signature !== signature) {
+      emptyCardReadiness.set(doc, { signature, at: Date.now() }); return false;
+    }
+    return Date.now() - prior.at >= 1500;
+  }
   function textCardReady(docs) {
     if (!settings.autoRead || !cardTabs().some(tab => tab.classList.contains('active'))) return false;
     return docs.some(doc => {
@@ -10628,13 +10656,15 @@ var CXOCSRuntime = (() => {
       return Date.now() - previous.at >= Math.max(3000, Number(settings.readDelay) || 5000);
     });
   }
-  function navigationTarget() {
+  function navigationTarget(empty = false) {
     const entry = courseEntry();
     if (entry) return entry;
     const tabs = cardTabs();
-    const nextCard = tabs.find((tab) => !tab.classList.contains('active') && !state.visitedCards.has(tab.getAttribute('cardid'))
-      && (settings.autoAnswer || !/测验|作业|考试/.test(tab.title || tab.textContent)));
-    if (nextCard && !chapterCompleted()) return { element: nextCard, description: `切换学习卡片：${nextCard.title || nextCard.textContent.trim()}` };
+    const candidates = empty ? tabs.slice(tabs.findIndex(tab => tab.classList.contains('active')) + 1) : tabs;
+    const nextCard = candidates.find((tab) => !tab.classList.contains('active') && !state.visitedCards.has(tab.getAttribute('cardid'))
+      && (empty || settings.autoAnswer || !/测验|作业|考试/.test(tab.title || tab.textContent)));
+    if (nextCard && (empty || !chapterCompleted())) return { element: nextCard, description: `${empty ? '暂无内容，' : ''}切换学习卡片：${nextCard.title || nextCard.textContent.trim()}` };
+    if (empty && nextButton()) return { element: nextButton(), description: '暂无内容，进入下一节' };
     const chapters = [...document.querySelectorAll('.posCatalog_select[id^="cur"]')];
     const index = chapters.findIndex((chapter) => chapter.classList.contains('posCatalog_active'));
     if (index >= 0) {
@@ -10655,6 +10685,11 @@ var CXOCSRuntime = (() => {
     if (scanResult.docs.some(auxiliaryBlocking)) return false;
     if (courseEntry()) return true;
     if (scanResult.blocked.length) return false;
+    if (emptyCardDocument(scanResult)) {
+      if (scanResult.unfinished.length || scanResult.docs.some(doc => questionRoots(doc).length)
+        || [...state.media.values()].some(record => !record.done)) return false;
+      return emptyCardReady(scanResult);
+    }
     if (settings.skipFinished && chapterCompleted()) return true;
     if (scanResult.docs.some((doc) => questionRoots(doc).length)) return false;
     if ([...state.media.values()].some((r) => !r.done)) return false;
@@ -10680,19 +10715,20 @@ var CXOCSRuntime = (() => {
       const key = 'task-done:' + state.navigationKey;
       if (!state.noticeKeys.has(key)) {
         state.noticeKeys.add(key);
-        desktopNotice(key, navigationTarget() ? '当前学习任务已完成。' : '当前任务已完成，未找到下一任务，请查看课程页面。');
+        desktopNotice(key, emptyCardReady(scanResult) ? '当前卡片暂无内容。' : navigationTarget() ? '当前学习任务已完成。' : '当前任务已完成，未找到下一任务，请查看课程页面。');
       }
     }
-    if (!settings.autoNext || state.nextClicked || !canNavigate(scanResult)) {
+    if ((!settings.autoNext && !emptyCardReady(scanResult)) || state.nextClicked || !canNavigate(scanResult)) {
       clearTimeout(state.nextTimer); state.nextTimer = 0; return;
     }
-    const target = navigationTarget();
+    const target = navigationTarget(emptyCardReady(scanResult));
     if (state.nextTimer || !target) return;
     const epoch = state.epoch;
     state.nextTimer = setTimeout(() => {
       state.nextTimer = 0;
-      if (!state.running || epoch !== state.epoch || !settings.autoNext || !canNavigate(collect(document))) return;
-      const currentTarget = navigationTarget();
+      const current = collect(document);
+      if (!state.running || epoch !== state.epoch || (!settings.autoNext && !emptyCardReady(current)) || !canNavigate(current)) return;
+      const currentTarget = navigationTarget(emptyCardReady(current));
       if (currentTarget?.element === target.element) {
         for (const [media, record] of state.media) restorePause(media, record);
         state.nextClicked = true;
@@ -11208,6 +11244,8 @@ var CXOCSRuntime = (() => {
             <p class="hint">后台播放开启时，切换标签页或窗口也会拦截页面暂停；绕过拦截的后台暂停会尝试自动恢复。播放器内手动暂停、弹题和验证码仍有效；浏览器休眠或网络中断无法拦截。</p>
             <div class="row"><label for="muted">静音播放</label><input type="checkbox" id="muted"></div>
             <div class="row"><label for="autoNext">任务完成后自动切章</label><input type="checkbox" id="autoNext"></div>
+            <div class="row"><label for="autoSkipEmpty">暂无内容时自动下一节</label><input type="checkbox" id="autoSkipEmpty"></div>
+            <p class="hint">默认开启。空卡片稳定显示后自动前进；本节还有卡片时先切换卡片。暂停或只答题时不跳转。</p>
             <div class="row"><label for="skipFinished">跳过已完成任务点</label><input type="checkbox" id="skipFinished"></div>
             <div class="row"><label for="autoRead">文档 / PPT / 书籍 / 链接阅读</label><input type="checkbox" id="autoRead"></div>
             <label class="field"><span>每页最少阅读秒数</span><input id="readDelay" type="number" min="1" max="3600"></label>
@@ -11305,7 +11343,7 @@ var CXOCSRuntime = (() => {
       <p id="externalFeedback" class="hint" role="status"></p>
       <p class="hint">支持 OCS 标准题库配置，不限于 N1。支持 GET、JSON/表单 POST、fetch/GM、json/text、题干和题型占位符及 handler / data.handler。导入后自动适配并去重；转换代码在限时隔离环境运行。依赖页面、存储或额外网络的扩展代码不兼容。HTTP 服务会明文传输题目与密钥。</p></details>
       <details id="cacheSettings"><summary>答案缓存</summary><span id="cacheInfo"></span><div class="actions"><button id="exportCache">导出缓存</button><button id="clearCache">清空缓存</button></div><p class="hint">最多 1000 条；仅复用当前来源配置下、30 天内的新版 AI/外部题库缓存。旧版或过期记录不再自动采用；随机与低信心答案不缓存，选项换序后重新查询。</p></details>`);
-    const ids = ['testNotification', 'testBrowserNotification', 'desktopNotifications', 'status', 'toggle', 'retry', 'next', 'resumeMedia', 'speed', 'autoResume', 'blockPause', 'backgroundPlay', 'muted', 'autoNext', 'skipFinished', 'autoRead', 'readDelay', 'autoAnswer', 'requireWebSearch', 'overwriteAnswers', 'randomFallback', 'compareRandomConfidence', 'fillLowConfidenceBlanks', 'autoSubmit', 'visionImages', 'answerCache', 'examEnabled', 'examNext', 'externalInfo', 'cacheInfo', 'clearCache', 'exportCache',
+    const ids = ['testNotification', 'testBrowserNotification', 'desktopNotifications', 'status', 'toggle', 'retry', 'next', 'resumeMedia', 'speed', 'autoResume', 'blockPause', 'backgroundPlay', 'muted', 'autoNext', 'autoSkipEmpty', 'skipFinished', 'autoRead', 'readDelay', 'autoAnswer', 'requireWebSearch', 'overwriteAnswers', 'randomFallback', 'compareRandomConfidence', 'fillLowConfidenceBlanks', 'autoSubmit', 'visionImages', 'answerCache', 'examEnabled', 'examNext', 'externalInfo', 'cacheInfo', 'clearCache', 'exportCache',
       'homeworkEnabled', 'homeworkAutoSave', 'homeworkNext', 'homeworkSubmit',
       'liveEnabled', 'signEnabled', 'discussionEnabled', 'discussionSubmit', 'specialEnabled', 'specialCodeAI', 'specialAutoSubmit', 'discussionPrompt',
       'searchMode', 'searchUrl', 'searchKeyInput', 'searchKeyInfo', 'saveSearch', 'testSearch', 'exportSearch', 'clearSearchKey', 'searchFeedback',
@@ -11328,7 +11366,7 @@ var CXOCSRuntime = (() => {
       }
       desktopNotice('test-browser', '这是一条浏览器通道测试通知。', true, 'browser');
     };
-    for (const id of ['desktopNotifications', 'speed', 'autoResume', 'blockPause', 'backgroundPlay', 'muted', 'autoNext', 'skipFinished', 'autoRead', 'readDelay', 'autoAnswer', 'requireWebSearch', 'overwriteAnswers', 'randomFallback', 'compareRandomConfidence', 'fillLowConfidenceBlanks', 'autoSubmit', 'visionImages', 'answerCache', 'examEnabled', 'examNext', 'homeworkEnabled', 'homeworkAutoSave', 'homeworkNext', 'homeworkSubmit', 'liveEnabled', 'signEnabled', 'discussionEnabled', 'discussionSubmit', 'specialEnabled', 'specialCodeAI', 'specialAutoSubmit']) {
+    for (const id of ['desktopNotifications', 'speed', 'autoResume', 'blockPause', 'backgroundPlay', 'muted', 'autoNext', 'autoSkipEmpty', 'skipFinished', 'autoRead', 'readDelay', 'autoAnswer', 'requireWebSearch', 'overwriteAnswers', 'randomFallback', 'compareRandomConfidence', 'fillLowConfidenceBlanks', 'autoSubmit', 'visionImages', 'answerCache', 'examEnabled', 'examNext', 'homeworkEnabled', 'homeworkAutoSave', 'homeworkNext', 'homeworkSubmit', 'liveEnabled', 'signEnabled', 'discussionEnabled', 'discussionSubmit', 'specialEnabled', 'specialCodeAI', 'specialAutoSubmit']) {
       const input = refs[id];
       if (input.type === 'checkbox') input.checked = Boolean(settings[id]); else input.value = String(id === 'readDelay' ? settings[id] / 1000 : settings[id]);
       input.addEventListener('change', () => {
@@ -11615,7 +11653,7 @@ var CXOCSRuntime = (() => {
     const quickTitle = document.createElement('div'); quickTitle.className = 'section-label'; quickTitle.innerHTML = '常用开关<span>修改后自动保存</span>'; panels.home.appendChild(quickTitle);
     const quickGrid = document.createElement('div'); quickGrid.className = 'quick-grid'; panels.home.appendChild(quickGrid);
     const quickButtons = [];
-    for (const [id, label] of [['autoAnswer', '自动答题'], ['muted', '静音播放'], ['autoNext', '自动切章'], ['autoRead', '自动阅读']]) {
+    for (const [id, label] of [['autoAnswer', '自动答题'], ['muted', '静音播放'], ['autoNext', '自动切章'], ['autoRead', '自动阅读'], ['autoSkipEmpty', '空内容自动下一节']]) {
       const button = document.createElement('button'); button.className = 'quick-toggle'; button.dataset.setting = id; button.textContent = label;
       button.onclick = () => refs[id].click();
       quickButtons.push([button, id]); quickGrid.appendChild(button);

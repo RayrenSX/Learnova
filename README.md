@@ -2,7 +2,7 @@
 
 # Learnova
 
-**学习通与 Pintia 的学习工作台 · 当前版本 0.1.10**
+**学习通与 Pintia 的学习工作台 · 当前版本 0.1.11**
 
 [![Release](https://img.shields.io/github/v/release/RayrenSX/Learnova?label=release)](https://github.com/RayrenSX/Learnova/releases/latest)
 [![Build](https://github.com/RayrenSX/Learnova/actions/workflows/release.yml/badge.svg)](https://github.com/RayrenSX/Learnova/actions/workflows/release.yml)
@@ -103,7 +103,7 @@ Pintia 模块不点击正式提交。代码填写与平台测试分别处理；�
 
 ## 版本与自动更新
 
-两个站点的工作台标题栏均显示 **`v0.1.10`**。点击版本号，或打开脚本管理器菜单中的“检查 Learnova 更新”，即可手动检查。
+两个站点的工作台标题栏均显示 **`v0.1.11`**。点击版本号，或打开脚本管理器菜单中的“检查 Learnova 更新”，即可手动检查。
 
 - GitHub 版在顶层页面启动时，距离上次成功检查超过六小时会查询 GitHub 最新版本。
 - 发现更高版本后，工作台显示“发现新版本”和“立即更新”链接；同一新版只发送一次桌面通知。
@@ -116,7 +116,7 @@ Greasy Fork 版保留站内更新渠道，使用该条目的原生安装链接�
 
 ## 当前验证范围
 
-`0.1.10` 新增新版 HTML 书籍入口、正文滚动、章节翻页及跨页暂停同步，修复匹配的原生阅读完成回执早于页面样式更新时的任务衔接。隔离回归 **301/301**，含阅读及原生任务专项 **19/19**。真实页面已验证非必做书籍的进入、滚动、翻页和暂停；必做书籍、链接仍缺有效真实完成回执。详见[当前功能核验](FUNCTION_VERIFICATION.md)和[书籍适配报告](research/2026-10-28/html-reading/REPORT.md)。
+`0.1.11` 新增“暂无内容时自动下一节”独立开关，默认开启，常用页与播放设置同步保存；本节还有卡片时先前进到下一张，避免漏掉后续内容。真实课程已验证从空卡片进入文档卡片；9 项空内容回归与 4 项界面回归通过，暂停、只答题、关闭开关和延迟加载正文均不会误跳。书籍阅读等功能的既有验收边界见[当前功能核验](FUNCTION_VERIFICATION.md)。
 
 `0.1.4` 修复带相同 alt 文本的图片换题识别、题库配置变更后的缓存隔离，以及 AI 跨域最终响应的拒绝处理。旧版本缓存会重新查询；最终响应检查不保证管理器阻止了跳转请求本身。当前功能缺口与同类脚本对照见 [功能差距](docs/FEATURE_GAPS.md)。历史研究文档中的默认行为以本页当前说明为准。
 

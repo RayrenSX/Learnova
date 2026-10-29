@@ -1,6 +1,10 @@
 # Publishing Learnova
 
-All editions currently use **0.1.10**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+All editions currently use **0.1.11**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+
+## 0.1.11 release (2026-10-29)
+
+Adds the default-on empty-card navigation setting and Home shortcut. Empty cards advance through the remaining current-chapter cards before using the native next-section button. The final implementation passed 9 empty-content and 4 interface regression scenarios; a live signed-in course confirmed an empty card advanced to a document card. Release and platform synchronization verification will be recorded after publication.
 
 ## 0.1.10 verification (2026-10-29)
 

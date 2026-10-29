@@ -2016,6 +2016,7 @@ const wrap = (body) => `<html><head><meta charset="utf-8"></head><body><h1>å­¦ä¹
   await require('./fixtures/learning-tools.cjs')({test,setup,choice,checked,logContains,aiSettings,assert});
   await require('./fixtures/course-queue.cjs')({test,setup,assert});
   await require('./fixtures/html-reading.cjs')({test,setup,assert});
+  await require('./fixtures/empty-content.cjs')({test,setup,assert});
   await browser.close();
   fs.mkdirSync(path.join(__dirname, '..', 'test-results'), { recursive: true });
   const reportName = process.env.CX_TEST_SHARD ? `report-shard-${process.env.CX_TEST_SHARD.replace('/', '-')}.json`

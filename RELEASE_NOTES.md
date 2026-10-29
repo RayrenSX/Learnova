@@ -1,3 +1,12 @@
+Learnova 0.1.11
+
+- Add a separate, enabled-by-default toggle for advancing when a course card explicitly displays “暂无内容”. Keep the Home shortcut and playback setting synchronized and saved immediately.
+- Continue through the remaining cards in the current chapter before using the platform's next-section control. Do not return to earlier cards when starting from the last card.
+- Require a stable, visible empty-card marker and recheck before navigation. Pause, answer-only mode, unfinished tasks, other content and a disabled toggle block automatic advancement.
+- Rebuild GitHub, ScriptCat and both Greasy Fork editions at version 0.1.11; Pintia receives the unified release version without functional changes.
+
+Validation: 9 empty-content scenarios and 4 interface scenarios passed on the final implementation, plus 4 existing chapter-navigation checks on the initial build. Syntax, update, distribution and native-task checks passed. A signed-in course check confirmed empty-card navigation to the next card, which then loaded a document and remained in place. Actual next-section clicks are covered by isolated regression tests. Existing live acceptance limits remain in FUNCTION_VERIFICATION.md.
+
 Learnova 0.1.10
 
 - Support Chaoxing's newer HTML subject books: open the native reading entry, scroll content at the configured interval, and continue through book sections.
