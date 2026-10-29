@@ -3,7 +3,19 @@
   "version": "0.1.10",
   "scriptSha256": "587188bca114b7c3340e265bedd6eba8649a3c07e5a6a617ab4028edc7286eea",
   "installedSourceMatched": true,
-  "published": false,
+  "published": true,
+  "publication": {
+    "date": "2026-10-29",
+    "tag": "v0.1.10",
+    "commit": "6b7e274fe82a8ba160a2510335b754eab7bcd335",
+    "release": "https://github.com/RayrenSX/Learnova/releases/tag/v0.1.10",
+    "workflowPassed": true,
+    "githubAssetsVerified": 8,
+    "scriptcat": "0.1.10; anonymous installation body matches release",
+    "greasyforkChaoxing": "0.1.10; public Code page body matches release",
+    "greasyforkPintia": "0.1.10; public Code page body matches release",
+    "releaseDayFocusedRegression": {"passed": 43, "total": 43}
+  },
   "allFeaturesAccepted": false,
   "changes": [
     "Native readjobv2 entry and popup-block fallback",

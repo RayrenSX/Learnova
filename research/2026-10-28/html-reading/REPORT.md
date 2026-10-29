@@ -25,7 +25,7 @@
 
 字体、搜索 **11/11**、外部题库、原生任务匹配、资料工具 **16/16**、语法和分发检查通过。这些隔离检查使用模拟页面和服务端回调，不能代替真实平台完成回执。
 
-合并安装文件、兼容安装文件及 GitHub 分发文件字节一致；安装编辑器源码与最终构建核对一致。SHA-256：`587188bca114b7c3340e265bedd6eba8649a3c07e5a6a617ab4028edc7286eea`。分平台产物已重建，未发布或提交 Git。机器结果见 [status.json](status.json)。
+合并安装文件、兼容安装文件及 GitHub 分发文件字节一致；安装编辑器源码与最终构建核对一致。SHA-256：`587188bca114b7c3340e265bedd6eba8649a3c07e5a6a617ab4028edc7286eea`。分平台产物已重建，10 月 28 日测试结束时尚未发布。10 月 29 日已提交并发布 [v0.1.10](https://github.com/RayrenSX/Learnova/releases/tag/v0.1.10)，ScriptCat 和 Greasy Fork 两个条目均已同步；发布核验见 [PUBLISHING.md](../../../PUBLISHING.md)。机器结果见 [status.json](status.json)。
 
 ## 仍未完成的真实场景测试
 
