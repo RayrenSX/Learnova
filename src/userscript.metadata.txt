@@ -25,6 +25,7 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_notification
 // @grant        GM_registerMenuCommand
+// @grant        GM_openInTab
 // @grant        unsafeWindow
 // @connect      *
 // ==/UserScript==

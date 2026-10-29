@@ -1,3 +1,13 @@
+Learnova 0.1.10
+
+- Support Chaoxing's newer HTML subject books: open the native reading entry, scroll content at the configured interval, and continue through book sections.
+- Open the same book through the userscript tab API when the native popup is blocked; keep the platform's original entry callback.
+- Synchronize the shared start/pause setting in HTML book tabs and keep book navigation separate from course chapter navigation.
+- Continue completed book/link tasks when the platform's matching native isPassed receipt arrives before its visual completion marker. Unmatched or unfinished tasks still block navigation.
+- Rebuild GitHub, ScriptCat and both Greasy Fork editions at version 0.1.10; Pintia receives the unified release version with no functional changes.
+
+Validation before release: the October 28 isolated suite passed 301/301, including 19/19 reading/native-task checks. Live checks covered entry opening, scrolling, section navigation and pause persistence on non-required books. Required book/link completion receipts still lack valid live samples. Other outstanding live acceptance limits remain documented in FUNCTION_VERIFICATION.md and the HTML reading report.
+
 Learnova 0.1.9
 
 - Export chapter quiz selections from ARIA and hidden answer fields; preserve question identities and visible question counts, and remove duplicate option labels.

@@ -27,6 +27,7 @@
   // TASKS_BEGIN
 // Bundled by tools/build-full.cjs.
   // TASKS_END
+  // HTML_READING
   // DRAFT_GUARD_BEGIN
 // Bundled by tools/build-full.cjs.
   // DRAFT_GUARD_END
@@ -514,8 +515,9 @@
     if (settings.answerOnly || !settings.autoRead || !state.running || state.verification || (!settings.backgroundPlay && document.hidden)) return;
     for (const doc of docs) {
       if (examDocument(doc) || verificationPage([doc])) continue;
+      const htmlReader=CXHTMLReading.subject(doc) || CXHTMLReading.entry(doc);
       const cloudRoot = cloudReaderDocument(doc) ? doc.querySelector('.fileBox') : null;
-      const root = cloudRoot || [...doc.querySelectorAll('[data-cx-reader], #ReadWeb, #reader, .swiper-container, .pdfViewer, [data-cx-link-task], .ans-hyperlink')].find(item => !finished(item))
+      const root = htmlReader?.root || cloudRoot || [...doc.querySelectorAll('[data-cx-reader], #ReadWeb, #reader, .swiper-container, .pdfViewer, [data-cx-link-task], .ans-hyperlink')].find(item => !finished(item))
         || (CXTasks.pdfResource(doc) ? doc.querySelector('#pageContainer, #viewer, [data-pdf-pages]') : null);
       if (!root || finished(root)) continue;
       let record = readingRecords.get(root);
@@ -528,6 +530,35 @@
       record.lastScan = Date.now();
       if (!record.nextAt) { record.nextAt = Date.now() + delay; log('开始阅读文档/书籍，按页面要求等待后翻页'); }
       if (Date.now() < record.nextAt) continue;
+      if(htmlReader?.kind==='entry') {
+        if(enabled(htmlReader.control)){
+          // The native click owns the finish-job callback. Its asynchronous
+          // window.open may be blocked; use the userscript tab API only then.
+          const target=pageWindow.top,original=target.open;let blocked='';
+          const open=function(raw,...args){const value=original.call(this,raw,...args);if(!value){const url=CXHTMLReading.subjectURL(raw,doc.URL);if(url)blocked=url.href;}return value;};
+          try{target.open=open;record.done=true;htmlReader.control.click();}
+          finally{if(target.open===open)target.open=original;}
+          if(blocked&&typeof GM_openInTab==='function')GM_openInTab(blocked,{active:true,insert:true,setParent:true});
+          log('已打开新版书籍阅读入口，等待平台记录');
+        }
+        continue;
+      }
+      if(htmlReader?.kind==='subject') {
+        if(!visible(root) || [...root.querySelectorAll('img')].some(e=>!e.complete||!e.naturalHeight)) {record.nextAt=Date.now()+delay;continue;}
+        const scroller=htmlReader.scroller,viewport=doc.defaultView?.innerHeight || doc.documentElement.clientHeight;
+        const viewportBottom=scroller&&scroller!==doc.scrollingElement?Math.min(viewport,scroller.getBoundingClientRect().bottom):viewport;
+        const remaining=root.getBoundingClientRect().bottom-viewportBottom+24;
+        if(scroller&&remaining>1){
+          const top=scroller.scrollTop;scroller.scrollTop+=Math.min(remaining,Math.max(1,Math.floor(Math.min(viewport,scroller.clientHeight)*0.85)));
+          if(scroller.scrollTop===top){once(`subject-stuck:${doc.URL}`,'书籍正文无法继续滚动，等待页面就绪','warn');}
+          record.seen=true;record.nextAt=Date.now()+delay;continue;
+        }
+        if(htmlReader.next){
+          const control=enabled(htmlReader.next)?htmlReader.next:[...htmlReader.next.children].find(enabled);
+          if(control){record.done=true;control.click();log('书籍当前页已阅读，进入下一页');}
+        }else{record.done=true;log('书籍已到最后一页，等待平台完成回执');}
+        continue;
+      }
       if (root === cloudRoot) { scrollCloudReader(doc, root, record, delay); continue; }
       const link = root.matches('[data-cx-link-task], .ans-hyperlink') ? (root.matches('a') ? root : root.querySelector('a')) : null;
       if (link && enabled(link)) { record.done = true; link.click(); log('已打开链接任务，等待平台完成标记'); continue; }
@@ -659,7 +690,7 @@
     return true;
   }
   function supportedPage() {
-    return (CXHomework.kind(document) !== 'none' || allowedDocument(document) && (examDocument(document) || CXTasks.pageKind(document) !== 'none' || /\/(?:readsvr\/book\/mooc|(?:mycourse|fanyav3)\/(?:studentstudy|stu|studentcourse)|.*(?:api\/work|work\/dowork|work\/doHomeWork|work\/answer|work\/preview))/i.test(location.pathname)));
+    return (CXHomework.kind(document) !== 'none' || allowedDocument(document) && (CXHTMLReading.subjectPage(document) || examDocument(document) || CXTasks.pageKind(document) !== 'none' || /\/(?:readsvr\/book\/mooc|(?:mycourse|fanyav3)\/(?:studentstudy|stu|studentcourse)|.*(?:api\/work|work\/dowork|work\/doHomeWork|work\/answer|work\/preview))/i.test(location.pathname)));
   }
   function finished(element) {
     return Boolean(element?.closest?.('.ans-job-finished, .job-finished, [data-isfinished="1"], [data-finished="true"]')) || CXTasks.nativeFinished(element);
@@ -1806,9 +1837,14 @@
     if ([...state.media.values()].some((r) => !r.done)) return false;
     // 其他任务（文档、测验等）必须由平台标记完成，不能只根据视频 ended 切章。
     if (scanResult.unfinished.length) return false;
-    return state.media.size > 0 || scanResult.docs.some((doc) => doc.querySelector('.ans-job-finished')) || textCardReady(scanResult.docs);
+    // Some read/link callbacks update attachments.isPassed before their DOM icon.
+    // Accept only the existing jobid-to-frame match after every unfinished job cleared.
+    const nativeCompleted = scanResult.docs.some(doc => [...doc.querySelectorAll('.ans-job, .ans-attach-ct')]
+      .some(job => visible(job) && (!job.matches('.ans-attach-ct') || job.querySelector('.ans-job-icon')) && CXTasks.nativeFinished(job)));
+    return state.media.size > 0 || nativeCompleted || scanResult.docs.some((doc) => doc.querySelector('.ans-job-finished')) || textCardReady(scanResult.docs);
   }
   function scheduleNext(scanResult) {
+    if(CXHTMLReading.subjectPage(document))return;
     if (state.navigationAttempt && Date.now() - state.navigationAttempt.at >= 15000) {
       if (state.navigationAttempt.key === state.navigationKey && state.nextClicked) {
         state.navigationAttempt.status = 'unknown';
@@ -3318,6 +3354,14 @@
     window.addEventListener('pagehide',event => {if(!event.persisted) clearInterval(crossTimer);});
   }
   buildUI();
+  if(CXHTMLReading.subjectPage(document)) {
+    const timer=setInterval(()=>{
+      const stored=readStore(KEY,{});Object.assign(settings,stored);
+      if(stored.enabled===false&&state.running)stop();
+      else if(stored.enabled===true&&!state.running)start();
+    },1000);
+    window.addEventListener('pagehide',event=>{if(!event.persisted)clearInterval(timer);});
+  }
   // Cross-origin native activities keep their worker and shared stop switch,
   // while the parent course page owns the visible controls.
   if(embeddedPlatformFrame){const host=document.getElementById('cx-video-helper-host');host.hidden=true;host.style.display='none';}

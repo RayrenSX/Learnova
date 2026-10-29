@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova for Chaoxing
 // @namespace    local.xuexitong.helper
-// @version      0.1.9
+// @version      0.1.10
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @description  学习通课程目录、视频音频播放、阅读、题库与可配置 AI 辅助。
@@ -18,6 +18,7 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_notification
 // @grant        GM_registerMenuCommand
+// @grant        GM_openInTab
 // @grant        GM_info
 // @grant        unsafeWindow
 // @connect      *
@@ -40,7 +41,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.9",
+        version: "0.1.10",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -7849,6 +7850,81 @@ var CXTasks = (() => {
 })();
 
 // TASKS_END
+  var CXHTMLReading = (() => {
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __commonJS = (cb, mod) => function __require() {
+    try {
+      return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+    } catch (e) {
+      throw mod = 0, e;
+    }
+  };
+
+  // src/html-reading.cjs
+  var require_html_reading = __commonJS({
+    "src/html-reading.cjs"(exports, module) {
+      function pageURL(doc) {
+        try {
+          return new URL(doc.URL);
+        } catch {
+          return null;
+        }
+      }
+      function subjectURL(raw, base) {
+        try {
+          const url = new URL(raw, base);
+          return /^https?:$/.test(url.protocol) && !url.username && !url.password && /(^|\.)chaoxing\.com$/i.test(url.hostname) && /^\/(?:mooc-ans\/)?(?:zt\/portal\/[^/]+|ztnodedetailcontroller\/visitnodedetail)\/?$/.test(url.pathname) ? url : null;
+        } catch {
+          return null;
+        }
+      }
+      function subjectPage(doc) {
+        return Boolean(subjectURL(doc.URL));
+      }
+      function scrollContainer(root) {
+        const doc = root.ownerDocument;
+        for (let node = root.parentElement; node; node = node.parentElement) {
+          if (node.scrollHeight > node.clientHeight + 1 && /auto|scroll/.test(doc.defaultView.getComputedStyle(node).overflowY)) return node;
+        }
+        return doc.scrollingElement;
+      }
+      function sameSubject(from, to, book) {
+        return to.origin === from.origin && to.searchParams.get("courseId") === book && to.searchParams.get("_from_") === from.searchParams.get("_from_") && to.searchParams.get("_fromV2_") === from.searchParams.get("_fromV2_");
+      }
+      function subject(doc) {
+        const url = subjectURL(doc.URL), main = doc.querySelector("#courseMainBox"), root = main?.querySelector("#contentDescriptionBox, #caContentBox .ans-cc");
+        if (!url || !root || !root.textContent.trim() && !root.querySelector("img,video,audio")) return null;
+        const links = [...doc.querySelectorAll(".course_section a[href]")].map((element) => ({ element, url: subjectURL(element.getAttribute("href"), url) })).filter((x) => x.url);
+        const book = url.searchParams.get("courseId") || links[0]?.url.searchParams.get("courseId");
+        if (!book || !/^\d+$/.test(book)) return null;
+        const current = url.searchParams.get("knowledgeId") || root.querySelector("[kid]")?.getAttribute("kid") || root.getAttribute("kid") || main.querySelector(".ans-cc[kid]")?.getAttribute("kid");
+        if (!current || !/^\d+$/.test(current)) return null;
+        let next = [...main.querySelectorAll("a.nodeItem[href]")].find((e) => e.textContent.replace(/\s/g, "") === "\u4E0B\u4E00\u9875");
+        let target = next && subjectURL(next.getAttribute("href"), url);
+        if (!target) {
+          const index = links.findIndex((x) => x.url.searchParams.get("knowledgeId") === current);
+          if (index >= 0 && index + 1 < links.length) {
+            next = links[index + 1].element;
+            target = links[index + 1].url;
+          }
+        }
+        if (target && (!sameSubject(url, target, book) || target.searchParams.get("knowledgeId") === current)) return null;
+        return { kind: "subject", root, main, scroller: scrollContainer(root), identity: `${book}:${current}`, title: doc.querySelector("#nodeTitleEle")?.textContent.trim() || "", next: target ? next : null };
+      }
+      function entry(doc) {
+        const url = pageURL(doc);
+        if (!url || !/(^|\.)chaoxing\.com$/i.test(url.hostname) || !/^\/(?:mooc-ans\/)?coursedata\/readjobv2\/show\/?$/.test(url.pathname)) return null;
+        const root = doc.querySelector(".readInfo"), tile = root?.querySelector(".readZT");
+        if (!tile) return null;
+        const control = [...tile.querySelectorAll("span,[role=button],button,a")].find((e) => e.textContent.trim() === "\u53BB\u9605\u8BFB");
+        return control ? { kind: "entry", root, control, identity: doc.URL } : null;
+      }
+      module.exports = { subjectURL, subjectPage, subject, entry };
+    }
+  });
+  return require_html_reading();
+})();
+
   // DRAFT_GUARD_BEGIN
 var CXDraftGuard = (() => {
   var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -8455,8 +8531,9 @@ var CXOCSRuntime = (() => {
     if (settings.answerOnly || !settings.autoRead || !state.running || state.verification || (!settings.backgroundPlay && document.hidden)) return;
     for (const doc of docs) {
       if (examDocument(doc) || verificationPage([doc])) continue;
+      const htmlReader=CXHTMLReading.subject(doc) || CXHTMLReading.entry(doc);
       const cloudRoot = cloudReaderDocument(doc) ? doc.querySelector('.fileBox') : null;
-      const root = cloudRoot || [...doc.querySelectorAll('[data-cx-reader], #ReadWeb, #reader, .swiper-container, .pdfViewer, [data-cx-link-task], .ans-hyperlink')].find(item => !finished(item))
+      const root = htmlReader?.root || cloudRoot || [...doc.querySelectorAll('[data-cx-reader], #ReadWeb, #reader, .swiper-container, .pdfViewer, [data-cx-link-task], .ans-hyperlink')].find(item => !finished(item))
         || (CXTasks.pdfResource(doc) ? doc.querySelector('#pageContainer, #viewer, [data-pdf-pages]') : null);
       if (!root || finished(root)) continue;
       let record = readingRecords.get(root);
@@ -8469,6 +8546,35 @@ var CXOCSRuntime = (() => {
       record.lastScan = Date.now();
       if (!record.nextAt) { record.nextAt = Date.now() + delay; log('开始阅读文档/书籍，按页面要求等待后翻页'); }
       if (Date.now() < record.nextAt) continue;
+      if(htmlReader?.kind==='entry') {
+        if(enabled(htmlReader.control)){
+          // The native click owns the finish-job callback. Its asynchronous
+          // window.open may be blocked; use the userscript tab API only then.
+          const target=pageWindow.top,original=target.open;let blocked='';
+          const open=function(raw,...args){const value=original.call(this,raw,...args);if(!value){const url=CXHTMLReading.subjectURL(raw,doc.URL);if(url)blocked=url.href;}return value;};
+          try{target.open=open;record.done=true;htmlReader.control.click();}
+          finally{if(target.open===open)target.open=original;}
+          if(blocked&&typeof GM_openInTab==='function')GM_openInTab(blocked,{active:true,insert:true,setParent:true});
+          log('已打开新版书籍阅读入口，等待平台记录');
+        }
+        continue;
+      }
+      if(htmlReader?.kind==='subject') {
+        if(!visible(root) || [...root.querySelectorAll('img')].some(e=>!e.complete||!e.naturalHeight)) {record.nextAt=Date.now()+delay;continue;}
+        const scroller=htmlReader.scroller,viewport=doc.defaultView?.innerHeight || doc.documentElement.clientHeight;
+        const viewportBottom=scroller&&scroller!==doc.scrollingElement?Math.min(viewport,scroller.getBoundingClientRect().bottom):viewport;
+        const remaining=root.getBoundingClientRect().bottom-viewportBottom+24;
+        if(scroller&&remaining>1){
+          const top=scroller.scrollTop;scroller.scrollTop+=Math.min(remaining,Math.max(1,Math.floor(Math.min(viewport,scroller.clientHeight)*0.85)));
+          if(scroller.scrollTop===top){once(`subject-stuck:${doc.URL}`,'书籍正文无法继续滚动，等待页面就绪','warn');}
+          record.seen=true;record.nextAt=Date.now()+delay;continue;
+        }
+        if(htmlReader.next){
+          const control=enabled(htmlReader.next)?htmlReader.next:[...htmlReader.next.children].find(enabled);
+          if(control){record.done=true;control.click();log('书籍当前页已阅读，进入下一页');}
+        }else{record.done=true;log('书籍已到最后一页，等待平台完成回执');}
+        continue;
+      }
       if (root === cloudRoot) { scrollCloudReader(doc, root, record, delay); continue; }
       const link = root.matches('[data-cx-link-task], .ans-hyperlink') ? (root.matches('a') ? root : root.querySelector('a')) : null;
       if (link && enabled(link)) { record.done = true; link.click(); log('已打开链接任务，等待平台完成标记'); continue; }
@@ -8600,7 +8706,7 @@ var CXOCSRuntime = (() => {
     return true;
   }
   function supportedPage() {
-    return (CXHomework.kind(document) !== 'none' || allowedDocument(document) && (examDocument(document) || CXTasks.pageKind(document) !== 'none' || /\/(?:readsvr\/book\/mooc|(?:mycourse|fanyav3)\/(?:studentstudy|stu|studentcourse)|.*(?:api\/work|work\/dowork|work\/doHomeWork|work\/answer|work\/preview))/i.test(location.pathname)));
+    return (CXHomework.kind(document) !== 'none' || allowedDocument(document) && (CXHTMLReading.subjectPage(document) || examDocument(document) || CXTasks.pageKind(document) !== 'none' || /\/(?:readsvr\/book\/mooc|(?:mycourse|fanyav3)\/(?:studentstudy|stu|studentcourse)|.*(?:api\/work|work\/dowork|work\/doHomeWork|work\/answer|work\/preview))/i.test(location.pathname)));
   }
   function finished(element) {
     return Boolean(element?.closest?.('.ans-job-finished, .job-finished, [data-isfinished="1"], [data-finished="true"]')) || CXTasks.nativeFinished(element);
@@ -10554,9 +10660,14 @@ var CXOCSRuntime = (() => {
     if ([...state.media.values()].some((r) => !r.done)) return false;
     // 其他任务（文档、测验等）必须由平台标记完成，不能只根据视频 ended 切章。
     if (scanResult.unfinished.length) return false;
-    return state.media.size > 0 || scanResult.docs.some((doc) => doc.querySelector('.ans-job-finished')) || textCardReady(scanResult.docs);
+    // Some read/link callbacks update attachments.isPassed before their DOM icon.
+    // Accept only the existing jobid-to-frame match after every unfinished job cleared.
+    const nativeCompleted = scanResult.docs.some(doc => [...doc.querySelectorAll('.ans-job, .ans-attach-ct')]
+      .some(job => visible(job) && (!job.matches('.ans-attach-ct') || job.querySelector('.ans-job-icon')) && CXTasks.nativeFinished(job)));
+    return state.media.size > 0 || nativeCompleted || scanResult.docs.some((doc) => doc.querySelector('.ans-job-finished')) || textCardReady(scanResult.docs);
   }
   function scheduleNext(scanResult) {
+    if(CXHTMLReading.subjectPage(document))return;
     if (state.navigationAttempt && Date.now() - state.navigationAttempt.at >= 15000) {
       if (state.navigationAttempt.key === state.navigationKey && state.nextClicked) {
         state.navigationAttempt.status = 'unknown';
@@ -12066,6 +12177,14 @@ var CXOCSRuntime = (() => {
     window.addEventListener('pagehide',event => {if(!event.persisted) clearInterval(crossTimer);});
   }
   buildUI();
+  if(CXHTMLReading.subjectPage(document)) {
+    const timer=setInterval(()=>{
+      const stored=readStore(KEY,{});Object.assign(settings,stored);
+      if(stored.enabled===false&&state.running)stop();
+      else if(stored.enabled===true&&!state.running)start();
+    },1000);
+    window.addEventListener('pagehide',event=>{if(!event.persisted)clearInterval(timer);});
+  }
   // Cross-origin native activities keep their worker and shared stop switch,
   // while the parent course page owns the visible controls.
   if(embeddedPlatformFrame){const host=document.getElementById('cx-video-helper-host');host.hidden=true;host.style.display='none';}

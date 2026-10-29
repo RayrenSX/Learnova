@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova
 // @namespace    local.xuexitong.helper
-// @version      0.1.9
+// @version      0.1.10
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @updateURL    https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.meta.js
@@ -25,6 +25,7 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_notification
 // @grant        GM_registerMenuCommand
+// @grant        GM_openInTab
 // @grant        unsafeWindow
 // @connect      *
 // ==/UserScript==

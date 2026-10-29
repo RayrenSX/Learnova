@@ -1,0 +1,5 @@
+# Local captures include course identifiers and browser session URLs.
+*
+!.gitignore
+!REPORT.md
+!status.json

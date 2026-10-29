@@ -1,6 +1,10 @@
 # Publishing Learnova
 
-All editions currently use **0.1.9**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+All editions currently use **0.1.10**. The root `package.json` is the build version source. Keep the Pintia package and both lockfile root versions in sync when releasing.
+
+## 0.1.10 verification (2026-10-29)
+
+The release adds native HTML book entry, scrolling, section navigation and shared pause behavior, plus matching native reading receipts for course navigation. The final combined script has SHA-256 `587188bca114b7c3340e265bedd6eba8649a3c07e5a6a617ab4028edc7286eea`, identical to the October 28 full isolated regression build (301/301). Release-day reading/page/queue regressions passed 43/43, study tools 16/16 and web-search checks 11/11; syntax, update, distribution, font, external-bank and native-task checks passed. CI now includes the HTML book and reading-receipt regressions. Required book/link completion receipts still lack valid live samples; see the release notes and HTML reading report.
 
 ## 0.1.9 verification (2026-10-28)
 

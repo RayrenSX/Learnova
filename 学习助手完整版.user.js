@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Learnova
 // @namespace    local.xuexitong.helper
-// @version      0.1.9
+// @version      0.1.10
 // @homepageURL  https://github.com/RayrenSX/Learnova
 // @supportURL   https://github.com/RayrenSX/Learnova/issues
 // @updateURL    https://github.com/RayrenSX/Learnova/releases/latest/download/study-helper.meta.js
@@ -25,6 +25,7 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_notification
 // @grant        GM_registerMenuCommand
+// @grant        GM_openInTab
 // @grant        unsafeWindow
 // @connect      *
 // ==/UserScript==
@@ -46,7 +47,7 @@ var StudyHelperUpdate = (() => {
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.9",
+        version: "0.1.10",
         private: true,
         description: "\u5B66\u4E60\u901A\u64AD\u653E\u3001\u9605\u8BFB\u4E0E\u7B54\u9898\u548C Pintia \u4EE3\u7801\u5DE5\u4F5C\u53F0\u5408\u5E76\u7528\u6237\u811A\u672C\uFF0C\u6309\u7F51\u7AD9\u81EA\u52A8\u52A0\u8F7D",
         main: "\u5B66\u4E60\u52A9\u624B\u5B8C\u6574\u7248.user.js",
@@ -380,6 +381,8 @@ var CXTasks=(()=>{var q=(t,n)=>()=>{try{return n||t((n={exports:{}}).exports,n),
 `));let i=String(e.textContent||"").trim();if(n&&i.length>4e4)throw new Error("\u9898\u76EE\u8D85\u8FC7\u5904\u7406\u8303\u56F4\uFF0C\u8BF7\u9009\u4E2D\u5BF9\u5E94\u9898\u76EE\u5355\u72EC\u5904\u7406");return i}function Z(t){let n=[...t.querySelectorAll('#totalQuestionNum, #questionCount, input[name="totalQuestionNum"], input[name="questionCount"], [data-total-question], [data-question-count]')].map(d=>Number(d.value||d.getAttribute("data-total-question")||d.getAttribute("data-question-count"))).filter(d=>Number.isSafeInteger(d)&&d>0),i=[...t.querySelectorAll(".answerCard [data-questionid], .answerCard [data-question-id], .answer-card [data-question-id], [data-cx-question-index] [data-question-id], [data-question-index] [data-questionid]")].map(d=>d.getAttribute("data-question-id")||d.getAttribute("data-questionid")).filter(Boolean);if(!i.length){let f=t.querySelector('#questionIds, input[name="answerwqbid"]')?.value?.replace(/,$/,"");f&&/^\d+(?:,\d+)*$/.test(f)&&i.push(...f.split(","))}let a=[...new Set(i)],s=n[0]||a.length,r=n.some(d=>d!==s)||i.length!==a.length||a.length>0&&a.length!==s,o=!!t.querySelector("[data-virtualized], [data-virtual-list], .virtual-list, .question-virtual-list"),u=o||!!t.querySelector(".question-pagination, .questionPager, [data-cx-question-pages], #questionPage");return{total:s,ids:a,conflicts:r,virtual:o,paged:u,known:s>0&&!r}}function tt(t){let n=[...t.querySelectorAll("audio")].map(e=>{let i=[...e.querySelectorAll("source[src]")],a=i.find(s=>!s.type||e.canPlayType(s.type))||i[0];return e.currentSrc||e.getAttribute("src")||a?.getAttribute("src")});return n.push(...[...t.querySelectorAll("[data-audio-url]")].map(e=>e.getAttribute("data-audio-url"))),[...new Set(n.filter(Boolean).map(e=>{try{return new URL(e,t.ownerDocument.URL).href}catch{return e}}))]}function et(t){return/\/page\/active\/stuActiveList(?:\/|$)/i.test(v(t))?c(t,'li[activeid][activestatus][onclick*="activeRowClick"]').map(n=>({element:n,title:p(n.querySelector("p"))||"\u8BFE\u7A0B\u6D3B\u52A8",status:n.getAttribute("activestatus"),type:n.getAttribute("activetype"),ended:n.getAttribute("activestatus")==="2"})):[]}j.exports={LIVE_RE:N,SIGN_RE:B,DISCUSSION_RE:U,SPECIAL_RE:F,ACTION_FEEDBACK:$,actionFeedback:G,nativeTask:L,nativeFinished:D,pageKind:W,taskKinds:b,liveState:P,signControls:H,discussionControls:J,textEditor:K,codeEditor:z,specialRoots:x,specialControls:Q,taskTitle:X,statement:Y,completion:S,virtualManifest:Z,pdfResource:V,audioSources:tt,activityEntries:et,text:p,visible:h,enabled:w}});return nt();})();
 
 // TASKS_END
+  var CXHTMLReading=(()=>{var g=(r,e)=>()=>{try{return e||r((e={exports:{}}).exports,e),e.exports}catch(t){throw e=0,t}};var S=g((q,d)=>{function f(r){try{return new URL(r.URL)}catch{return null}}function s(r,e){try{let t=new URL(r,e);return/^https?:$/.test(t.protocol)&&!t.username&&!t.password&&/(^|\.)chaoxing\.com$/i.test(t.hostname)&&/^\/(?:mooc-ans\/)?(?:zt\/portal\/[^/]+|ztnodedetailcontroller\/visitnodedetail)\/?$/.test(t.pathname)?t:null}catch{return null}}function h(r){return!!s(r.URL)}function y(r){let e=r.ownerDocument;for(let t=r.parentElement;t;t=t.parentElement)if(t.scrollHeight>t.clientHeight+1&&/auto|scroll/.test(e.defaultView.getComputedStyle(t).overflowY))return t;return e.scrollingElement}function p(r,e,t){return e.origin===r.origin&&e.searchParams.get("courseId")===t&&e.searchParams.get("_from_")===r.searchParams.get("_from_")&&e.searchParams.get("_fromV2_")===r.searchParams.get("_fromV2_")}function b(r){let e=s(r.URL),t=r.querySelector("#courseMainBox"),o=t?.querySelector("#contentDescriptionBox, #caContentBox .ans-cc");if(!e||!o||!o.textContent.trim()&&!o.querySelector("img,video,audio"))return null;let l=[...r.querySelectorAll(".course_section a[href]")].map(n=>({element:n,url:s(n.getAttribute("href"),e)})).filter(n=>n.url),u=e.searchParams.get("courseId")||l[0]?.url.searchParams.get("courseId");if(!u||!/^\d+$/.test(u))return null;let a=e.searchParams.get("knowledgeId")||o.querySelector("[kid]")?.getAttribute("kid")||o.getAttribute("kid")||t.querySelector(".ans-cc[kid]")?.getAttribute("kid");if(!a||!/^\d+$/.test(a))return null;let i=[...t.querySelectorAll("a.nodeItem[href]")].find(n=>n.textContent.replace(/\s/g,"")==="\u4E0B\u4E00\u9875"),c=i&&s(i.getAttribute("href"),e);if(!c){let n=l.findIndex(m=>m.url.searchParams.get("knowledgeId")===a);n>=0&&n+1<l.length&&(i=l[n+1].element,c=l[n+1].url)}return c&&(!p(e,c,u)||c.searchParams.get("knowledgeId")===a)?null:{kind:"subject",root:o,main:t,scroller:y(o),identity:`${u}:${a}`,title:r.querySelector("#nodeTitleEle")?.textContent.trim()||"",next:c?i:null}}function x(r){let e=f(r);if(!e||!/(^|\.)chaoxing\.com$/i.test(e.hostname)||!/^\/(?:mooc-ans\/)?coursedata\/readjobv2\/show\/?$/.test(e.pathname))return null;let t=r.querySelector(".readInfo"),o=t?.querySelector(".readZT");if(!o)return null;let l=[...o.querySelectorAll("span,[role=button],button,a")].find(u=>u.textContent.trim()==="\u53BB\u9605\u8BFB");return l?{kind:"entry",root:t,control:l,identity:r.URL}:null}d.exports={subjectURL:s,subjectPage:h,subject:b,entry:x}});return S();})();
+
   // DRAFT_GUARD_BEGIN
 var CXDraftGuard=(()=>{var p=(o,e)=>()=>{try{return e||o((e={exports:{}}).exports,e),e.exports}catch(r){throw e=0,r}};var v=p((b,u)=>{async function y({root:o,target:e,signal:r,fresh:i,request:w,write:a,verify:m,phase:l}){if(r.aborted||!i())throw new Error("\u4EFB\u52A1\u5DF2\u53D6\u6D88");if(!o?.isConnected||!e?.element?.isConnected)throw new Error("\u7F16\u8F91\u5668\u5DF2\u79BB\u5F00\u5F53\u524D\u9875\u9762");let E=e.read(),h=e.revision?.(),c=!1,s=new Set([o.ownerDocument||o,e.element.ownerDocument]),d=n=>{n.isTrusted&&(o.contains(n.target)||e.element.contains(n.target))&&(c=!0)};for(let n of s)for(let t of["input","change","keydown","paste","cut"])n.addEventListener(t,d,!0);let f=()=>!r.aborted&&i()&&o.isConnected&&e.element.isConnected&&(!e.current||e.current());try{let n=await w();if(!f())throw new Error("\u9875\u9762\u6216\u8BBE\u7F6E\u5DF2\u53D8\u5316\uFF0C\u5DF2\u53D6\u6D88\u8349\u7A3F\u5199\u5165");if(c||E!==e.read()||e.revision?.()!==h)throw new Error("\u67E5\u8BE2\u671F\u95F4\u7F16\u8F91\u5668\u5DF2\u88AB\u624B\u52A8\u4FEE\u6539\uFF0C\u5DF2\u4FDD\u7559\u4F60\u7684\u5185\u5BB9");if(l?.("writing"),a(n),!f()||!m(n))throw new Error("\u7F16\u8F91\u5668\u5185\u5BB9\u56DE\u8BFB\u4E0D\u4E00\u81F4\uFF0C\u8BF7\u5728\u539F\u9875\u9762\u6838\u5BF9");return n}finally{for(let n of s)for(let t of["input","change","keydown","paste","cut"])n.removeEventListener(t,d,!0)}}u.exports={run:y}});return v();})();
 
@@ -869,8 +872,9 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
     if (settings.answerOnly || !settings.autoRead || !state.running || state.verification || (!settings.backgroundPlay && document.hidden)) return;
     for (const doc of docs) {
       if (examDocument(doc) || verificationPage([doc])) continue;
+      const htmlReader=CXHTMLReading.subject(doc) || CXHTMLReading.entry(doc);
       const cloudRoot = cloudReaderDocument(doc) ? doc.querySelector('.fileBox') : null;
-      const root = cloudRoot || [...doc.querySelectorAll('[data-cx-reader], #ReadWeb, #reader, .swiper-container, .pdfViewer, [data-cx-link-task], .ans-hyperlink')].find(item => !finished(item))
+      const root = htmlReader?.root || cloudRoot || [...doc.querySelectorAll('[data-cx-reader], #ReadWeb, #reader, .swiper-container, .pdfViewer, [data-cx-link-task], .ans-hyperlink')].find(item => !finished(item))
         || (CXTasks.pdfResource(doc) ? doc.querySelector('#pageContainer, #viewer, [data-pdf-pages]') : null);
       if (!root || finished(root)) continue;
       let record = readingRecords.get(root);
@@ -883,6 +887,35 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
       record.lastScan = Date.now();
       if (!record.nextAt) { record.nextAt = Date.now() + delay; log('开始阅读文档/书籍，按页面要求等待后翻页'); }
       if (Date.now() < record.nextAt) continue;
+      if(htmlReader?.kind==='entry') {
+        if(enabled(htmlReader.control)){
+          // The native click owns the finish-job callback. Its asynchronous
+          // window.open may be blocked; use the userscript tab API only then.
+          const target=pageWindow.top,original=target.open;let blocked='';
+          const open=function(raw,...args){const value=original.call(this,raw,...args);if(!value){const url=CXHTMLReading.subjectURL(raw,doc.URL);if(url)blocked=url.href;}return value;};
+          try{target.open=open;record.done=true;htmlReader.control.click();}
+          finally{if(target.open===open)target.open=original;}
+          if(blocked&&typeof GM_openInTab==='function')GM_openInTab(blocked,{active:true,insert:true,setParent:true});
+          log('已打开新版书籍阅读入口，等待平台记录');
+        }
+        continue;
+      }
+      if(htmlReader?.kind==='subject') {
+        if(!visible(root) || [...root.querySelectorAll('img')].some(e=>!e.complete||!e.naturalHeight)) {record.nextAt=Date.now()+delay;continue;}
+        const scroller=htmlReader.scroller,viewport=doc.defaultView?.innerHeight || doc.documentElement.clientHeight;
+        const viewportBottom=scroller&&scroller!==doc.scrollingElement?Math.min(viewport,scroller.getBoundingClientRect().bottom):viewport;
+        const remaining=root.getBoundingClientRect().bottom-viewportBottom+24;
+        if(scroller&&remaining>1){
+          const top=scroller.scrollTop;scroller.scrollTop+=Math.min(remaining,Math.max(1,Math.floor(Math.min(viewport,scroller.clientHeight)*0.85)));
+          if(scroller.scrollTop===top){once(`subject-stuck:${doc.URL}`,'书籍正文无法继续滚动，等待页面就绪','warn');}
+          record.seen=true;record.nextAt=Date.now()+delay;continue;
+        }
+        if(htmlReader.next){
+          const control=enabled(htmlReader.next)?htmlReader.next:[...htmlReader.next.children].find(enabled);
+          if(control){record.done=true;control.click();log('书籍当前页已阅读，进入下一页');}
+        }else{record.done=true;log('书籍已到最后一页，等待平台完成回执');}
+        continue;
+      }
       if (root === cloudRoot) { scrollCloudReader(doc, root, record, delay); continue; }
       const link = root.matches('[data-cx-link-task], .ans-hyperlink') ? (root.matches('a') ? root : root.querySelector('a')) : null;
       if (link && enabled(link)) { record.done = true; link.click(); log('已打开链接任务，等待平台完成标记'); continue; }
@@ -1014,7 +1047,7 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
     return true;
   }
   function supportedPage() {
-    return (CXHomework.kind(document) !== 'none' || allowedDocument(document) && (examDocument(document) || CXTasks.pageKind(document) !== 'none' || /\/(?:readsvr\/book\/mooc|(?:mycourse|fanyav3)\/(?:studentstudy|stu|studentcourse)|.*(?:api\/work|work\/dowork|work\/doHomeWork|work\/answer|work\/preview))/i.test(location.pathname)));
+    return (CXHomework.kind(document) !== 'none' || allowedDocument(document) && (CXHTMLReading.subjectPage(document) || examDocument(document) || CXTasks.pageKind(document) !== 'none' || /\/(?:readsvr\/book\/mooc|(?:mycourse|fanyav3)\/(?:studentstudy|stu|studentcourse)|.*(?:api\/work|work\/dowork|work\/doHomeWork|work\/answer|work\/preview))/i.test(location.pathname)));
   }
   function finished(element) {
     return Boolean(element?.closest?.('.ans-job-finished, .job-finished, [data-isfinished="1"], [data-finished="true"]')) || CXTasks.nativeFinished(element);
@@ -2968,9 +3001,14 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
     if ([...state.media.values()].some((r) => !r.done)) return false;
     // 其他任务（文档、测验等）必须由平台标记完成，不能只根据视频 ended 切章。
     if (scanResult.unfinished.length) return false;
-    return state.media.size > 0 || scanResult.docs.some((doc) => doc.querySelector('.ans-job-finished')) || textCardReady(scanResult.docs);
+    // Some read/link callbacks update attachments.isPassed before their DOM icon.
+    // Accept only the existing jobid-to-frame match after every unfinished job cleared.
+    const nativeCompleted = scanResult.docs.some(doc => [...doc.querySelectorAll('.ans-job, .ans-attach-ct')]
+      .some(job => visible(job) && (!job.matches('.ans-attach-ct') || job.querySelector('.ans-job-icon')) && CXTasks.nativeFinished(job)));
+    return state.media.size > 0 || nativeCompleted || scanResult.docs.some((doc) => doc.querySelector('.ans-job-finished')) || textCardReady(scanResult.docs);
   }
   function scheduleNext(scanResult) {
+    if(CXHTMLReading.subjectPage(document))return;
     if (state.navigationAttempt && Date.now() - state.navigationAttempt.at >= 15000) {
       if (state.navigationAttempt.key === state.navigationKey && state.nextClicked) {
         state.navigationAttempt.status = 'unknown';
@@ -4480,6 +4518,14 @@ var CXOCSRuntime=(()=>{var g=(t,r)=>()=>{try{return r||t((r={exports:{}}).export
     window.addEventListener('pagehide',event => {if(!event.persisted) clearInterval(crossTimer);});
   }
   buildUI();
+  if(CXHTMLReading.subjectPage(document)) {
+    const timer=setInterval(()=>{
+      const stored=readStore(KEY,{});Object.assign(settings,stored);
+      if(stored.enabled===false&&state.running)stop();
+      else if(stored.enabled===true&&!state.running)start();
+    },1000);
+    window.addEventListener('pagehide',event=>{if(!event.persisted)clearInterval(timer);});
+  }
   // Cross-origin native activities keep their worker and shared stop switch,
   // while the parent course page owns the visible controls.
   if(embeddedPlatformFrame){const host=document.getElementById('cx-video-helper-host');host.hidden=true;host.style.display='none';}
@@ -35366,7 +35412,7 @@ ${example.output}`);
     "package.json"(exports, module) {
       module.exports = {
         name: "learnova",
-        version: "0.1.9",
+        version: "0.1.10",
         private: true,
         description: "学习通播放、阅读与答题和 Pintia 代码工作台合并用户脚本，按网站自动加载",
         main: "学习助手完整版.user.js",

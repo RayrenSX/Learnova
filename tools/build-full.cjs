@@ -54,6 +54,8 @@ const taskBundle = esbuild.buildSync({entryPoints: [path.join(root, 'src/task-ad
   write: false, platform: 'browser', format: 'iife', globalName: 'CXTasks', minify, legalComments:'inline'}).outputFiles[0].text;
 source = source.replace(/\/\/ HOMEWORK_BEGIN[\s\S]*?\/\/ HOMEWORK_END/, `// HOMEWORK_BEGIN\n${homeworkBundle}\n// HOMEWORK_END`);
 source = source.replace(/\/\/ TASKS_BEGIN[\s\S]*?\/\/ TASKS_END/, `// TASKS_BEGIN\n${taskBundle}\n// TASKS_END`);
+const htmlReaderBundle=esbuild.buildSync({entryPoints:[path.join(root,'src/html-reading.cjs')],bundle:true,write:false,platform:'browser',format:'iife',globalName:'CXHTMLReading',minify}).outputFiles[0].text;
+source=source.replace('// HTML_READING',()=>htmlReaderBundle);
 const draftBundle = esbuild.buildSync({entryPoints: [path.join(root, 'src/draft-guard.cjs')], bundle: true,
   write: false, platform:'browser', format:'iife', globalName:'CXDraftGuard', minify}).outputFiles[0].text;
 source = source.replace(/\/\/ DRAFT_GUARD_BEGIN[\s\S]*?\/\/ DRAFT_GUARD_END/, `// DRAFT_GUARD_BEGIN\n${draftBundle}\n// DRAFT_GUARD_END`);

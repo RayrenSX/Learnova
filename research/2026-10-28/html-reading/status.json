@@ -1,0 +1,123 @@
+{
+  "date": "2026-10-28",
+  "version": "0.1.10",
+  "scriptSha256": "587188bca114b7c3340e265bedd6eba8649a3c07e5a6a617ab4028edc7286eea",
+  "installedSourceMatched": true,
+  "published": false,
+  "allFeaturesAccepted": false,
+  "changes": [
+    "Native readjobv2 entry and popup-block fallback",
+    "HTML subject body scrolling and native chapter navigation",
+    "Shared stop/read-only modes in standalone reader",
+    "Matched native completion metadata permits navigation even without a DOM class update"
+  ],
+  "checks": {
+    "fullBrowser": {
+      "passed": 301,
+      "total": 301,
+      "shards": [
+        76,
+        75,
+        75,
+        75
+      ]
+    },
+    "readingSubset": {
+      "passed": 19,
+      "total": 19
+    },
+    "fontCodec": true,
+    "webSearch": {
+      "passed": 11,
+      "total": 11
+    },
+    "externalBank": true,
+    "nativeTaskMetadata": true,
+    "studyTools": {
+      "passed": 16,
+      "total": 16
+    },
+    "syntax": true,
+    "distribution": true
+  },
+  "localRegression": {
+    "newReceiptTestsBeforeFix": {
+      "passed": 0,
+      "total": 2
+    },
+    "newReceiptTestsAfterFix": {
+      "passed": 2,
+      "total": 2
+    },
+    "environment": "Isolated Edge; page, platform callbacks and remote services simulated"
+  },
+  "live": {
+    "htmlBook": {
+      "automaticEntry": true,
+      "chapterNavigation": true,
+      "bodyScrolling": true,
+      "pauseHeldSeconds": 6,
+      "required": false,
+      "requiredCompletionReceipt": false
+    },
+    "scan": {
+      "accounts": 2,
+      "chapterInventories": 18,
+      "chapters": 798,
+      "cardPositions0Through3": 3192,
+      "userProvidedAccount": {
+        "courses": 8,
+        "chapters": 214,
+        "optionalBooks": 3,
+        "linkTasks": 0,
+        "extraBoundaryRequests": 214,
+        "extraCards": 0
+      },
+      "optionalBooks": 4,
+      "requiredBooks": 0,
+      "linkTasks": 0,
+      "limits": "Earlier 20-course account: ten course inventories, indices 0-3; inaccessible/unpublished sections are not counted as scanned. User-provided eight-course account: all 214 navigable chapters, indices 0-3 and index 4 boundary check."
+    },
+    "requiredBookReceipt": "not_verified_no_valid_task_sample",
+    "requiredLinkReceipt": "not_verified_no_valid_task_sample",
+    "platformCompletionForged": false,
+    "newFormalSubmissions": 0,
+    "finalFlags": {
+      "autoNext": true,
+      "skipFinished": true,
+      "autoAnswer": true,
+      "autoRead": true,
+      "autoSubmit": false,
+      "examEnabled": false,
+      "examNext": false,
+      "homeworkSubmit": false,
+      "specialAutoSubmit": false,
+      "overwriteAnswers": false,
+      "randomFallback": false,
+      "visionImages": false,
+      "multiModelEnabled": false,
+      "requireWebSearch": false
+    },
+    "paused": true
+  },
+  "remainingLiveTests": [
+    "Required book/link completion persisted after reload",
+    "Valid course audio/listening; matching/reading/cloze question controls",
+    "Live broadcasts and active attendance including QR/location/gesture",
+    "Attachment upload receipt, recording, peer/group assessment",
+    "Current captcha/face verification stop and manual resume",
+    "Entire-course completion into the next queued course",
+    "Formal homework/chapter submission and grading; exam execution remains outside authorized scope",
+    "OS notification delivery; Word page rendering",
+    "All window sizes/keyboard layouts and real confidence/random policies",
+    "Current real Pintia and additional-platform end-to-end flows"
+  ],
+  "knownUnresolved": [
+    "ABC: five no-answer responses, not passed by user decision",
+    "Original course file download HTTP 403",
+    "New exam-list GM request fails",
+    "Historical background freeze and search HTTP 524 root causes/stability",
+    "N1 sample contains at least two wrong answers",
+    "One 18-image question exceeds the 12-image limit"
+  ]
+}
